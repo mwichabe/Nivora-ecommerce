@@ -2,33 +2,47 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-//database connection
+const userRoutes = require("./Routes/userRoutes");
+const adminRoutes = require("./Routes/adminProductRoutes"); 
+const { errorHandler } = require("./Middleware/errorHandler");
+
+// --- DATABASE CONNECTION ---
 mongoose
   .connect(
     "mongodb+srv://mwichabecollins:ibkiwpxy8ixttyx5@cluster0.pfbrzgm.mongodb.net/"
   )
   .then(() => console.log("MongoDB Connected"))
-  .catch((error) => console.log(error));
+  .catch((error) => console.log("MongoDB Connection Error:", error));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// --- MIDDLEWARE CONFIGURATION ---
 app.use(
   cors({
-    origin: "http://localhost:5173/",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST", "DELETE", "PUT"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cache-Control",
-      "Expires",
-      "Pragma",
-    ],
     credentials: true,
   })
 );
 
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json()); // Allows parsing of JSON request bodies
+app.use(express.urlencoded({ extended: false })); // Allows parsing of URL-encoded data
 
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
+// --- ROUTES ---
+app.use("/api/users", userRoutes); 
+// 3. Link Admin Routes to the /api/admin/products endpoint
+app.use("/api/admin/products", adminRoutes);
+
+// --- ERROR HANDLER MIDDLEWARE (Place after routes) ---
+// This is essential for clean error reporting in Express.
+// Ensure you create this file if you haven't yet!
+// app.use(errorHandler); 
+
+// --- SERVER START ---
 app.listen(PORT, () => console.log(`Server is now running on PORT ${PORT}`));
