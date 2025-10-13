@@ -1,237 +1,327 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+// --- Constants ---
+const API_URL = "http://localhost:5000/api/admin/products";
+const MAX_PRODUCTS = 8;
+const FALLBACK_IMAGE_URL = 'https://placehold.co/600x400/000000/FFFFFF?text=No+Image';
 
 const NewArrivals = () => {
-    const scrollRef = useRef(null);
-    const [canScrollRight, setCanScrollRight] = useState(true);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const scrollRef = useRef(null);
+  const navigate = useNavigate();
 
-    // New state for mouse-based scrolling
-    const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
+  // UI States
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasToken, setHasToken] = useState(false); // Check for authentication
 
-    const newArrivals = [
-        {
-            _id: "1",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=1",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "2",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=2",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "8",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=1",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "3",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=3",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "4",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=4",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "5",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=5",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "6",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=6",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-        {
-            _id: "7",
-            name: "Stylish Jacket",
-            price: 120,
-            images: [
-                {
-                    url: "https://picsum.photos/500/500?/random=7",
-                    altText: "Stylish Jacket",
-                },
-            ],
-        },
-    ];
+  // Data State
+  const [products, setProducts] = useState([]);
 
-    const updateScrollButtons = () => {
-        const container = scrollRef.current;
-        if (container) {
-            const { scrollLeft, scrollWidth, clientWidth } = container;
-            setCanScrollLeft(scrollLeft > 0);
-            setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
-        }
+  // Mouse Drag States
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  // --- Data Fetching Logic ---
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setHasToken(!!token); // Check if token exists
+
+    if (!token) {
+      setLoading(false);
+      setProducts([]);
+      return;
+    }
+
+    const fetchNewArrivals = async () => {
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
+      try {
+        setLoading(true);
+        const response = await axios.get(API_URL, config);
+
+        const newArrivalsData = response.data
+          .slice(0, MAX_PRODUCTS)
+          .map((p) => ({
+            _id: p._id,
+            name: p.name,
+            price: p.price,
+            sizes: Array.isArray(p.sizes) ? p.sizes : [],
+            imageUrls:
+                            p.imageUrls && p.imageUrls.length > 0
+                                ? p.imageUrls
+                                : [FALLBACK_IMAGE_URL],
+                    }));
+                
+        console.log(`New arrivals:`, newArrivalsData);
+        setProducts(newArrivalsData);
+      } catch (error) {
+        console.error("Error fetching new arrivals:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleScrollLeft = () => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
-        }
+    fetchNewArrivals();
+  }, [navigate]);
+
+  // --- Scroll Logic ---
+  const updateScrollButtons = () => {
+    const container = scrollRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    }
+  };
+
+  const handleScrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -320, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 320, behavior: "smooth" });
+    }
+  };
+
+  // --- Mouse Drag Logic (Unchanged) ---
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+    scrollRef.current.style.cursor = "grabbing";
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    scrollRef.current.style.cursor = "grab";
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    scrollRef.current.style.cursor = "grab";
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (container) {
+      updateScrollButtons();
+      container.addEventListener("scroll", updateScrollButtons);
+      container.addEventListener("mousedown", handleMouseDown);
+      container.addEventListener("mouseup", handleMouseUp);
+      container.addEventListener("mouseleave", handleMouseLeave);
+      container.addEventListener("mousemove", handleMouseMove);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", updateScrollButtons);
+        container.removeEventListener("mousedown", handleMouseDown);
+        container.removeEventListener("mouseup", handleMouseUp);
+        container.removeEventListener("mouseleave", handleMouseLeave);
+        container.removeEventListener("mousemove", handleMouseMove);
+      }
     };
+  }, [isDragging, startX, scrollLeft, products]);
 
-    const handleScrollRight = () => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
-        }
-    };
+  // --- Helper Component: Skeleton Loader (Unchanged) ---
+  const CardSkeleton = () => (
+    <div className="min-w-[100%] sm:min-w-[50%] md:min-w-[33%] lg:min-w-[25%] xl:min-w-[12.5%] relative animate-pulse">
+      <div className="w-full h-[350px] bg-gray-200 rounded-lg"></div>
+      <div className="p-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+      </div>
+    </div>
+  );
 
-    // Mouse event handlers for scrolling
-    const handleMouseDown = (e) => {
-        setIsDragging(true);
-        setStartX(e.pageX - scrollRef.current.offsetLeft);
-        setScrollLeft(scrollRef.current.scrollLeft);
-        // Add a "grabbing" cursor class to provide feedback to the user
-        scrollRef.current.style.cursor = "grabbing";
-    };
-
-    const handleMouseLeave = () => {
-        setIsDragging(false);
-        // Reset cursor to default
-        scrollRef.current.style.cursor = "grab";
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-        // Reset cursor to default
-        scrollRef.current.style.cursor = "grab";
-    };
-
-    const handleMouseMove = (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        const x = e.pageX - scrollRef.current.offsetLeft;
-        const walk = (x - startX) * 2; // Adjust scroll speed
-        scrollRef.current.scrollLeft = scrollLeft - walk;
-    };
-
-    useEffect(() => {
-        const container = scrollRef.current;
-        if (container) {
-            container.addEventListener("scroll", updateScrollButtons);
-
-            // Add mouse event listeners for dragging
-            container.addEventListener("mousedown", handleMouseDown);
-            container.addEventListener("mouseup", handleMouseUp);
-            container.addEventListener("mouseleave", handleMouseLeave);
-            container.addEventListener("mousemove", handleMouseMove);
-
-            updateScrollButtons();
-        }
-        return () => {
-            if (container) {
-                container.removeEventListener("scroll", updateScrollButtons);
-                // Remove mouse event listeners
-                container.removeEventListener("mousedown", handleMouseDown);
-                container.removeEventListener("mouseup", handleMouseUp);
-                container.removeEventListener("mouseleave", handleMouseLeave);
-                container.removeEventListener("mousemove", handleMouseMove);
+ // --- Helper Component: Product Card UI/UX (FIXED IMAGE LOADING) ---
+const ArrivalCard = ({ product }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    // Function to handle image loading errors
+        const handleImageError = (e) => {
+            // Log the error for debugging
+            console.error(`Image load failed for URL: ${e.currentTarget.src}`);
+            
+            // If there are more URLs to try, move to the next one
+            if (currentImageIndex < product.imageUrls.length - 1) {
+                // Increment index to try the next image URL
+                setCurrentImageIndex(prevIndex => prevIndex + 1);
+            } else if (e.currentTarget.src !== FALLBACK_IMAGE_URL) {
+                // If we've exhausted all real URLs, force the reliable fallback
+                e.currentTarget.src = FALLBACK_IMAGE_URL;
+                e.currentTarget.onerror = null; // Prevent infinite loop if fallback fails
+                console.warn('Exhausted all product images. Displaying final fallback.');
             }
+            // If the current src is already the fallback, we stop.
         };
-    }, [isDragging, startX, scrollLeft]);
-
     return (
-        <section className="py-16 px-4 lg:px-0 ">
-            <div className="container mx-auto text-center mb-10 relative">
-                <h2 className="text-3xl font-bold mb-4">Explore New Arrivals</h2>
-                <p className="text-lg text-gray-600 mb-8">
-                    Discover the latest styles straight off the runway, freshly added to
-                    keep your wardrobe on the cutting edge of fashion.
-                </p>
-
-                {/* Scroll buttons */}
-                <div className="absolute right-0 bottom-[-30px] flex space-x-2">
-                    <button
-                        onClick={handleScrollLeft}
-                        disabled={!canScrollLeft}
-                        className={`p-2 rounded border bg-white text-black transition-colors duration-200 ${!canScrollLeft ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
-                    >
-                        <FiChevronLeft className="text-2xl" />
-                    </button>
-                    <button
-                        onClick={handleScrollRight}
-                        disabled={!canScrollRight}
-                        className={`p-2 rounded border bg-white text-black transition-colors duration-200 ${!canScrollRight ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
-                    >
-                        <FiChevronRight className="text-2xl" />
-                    </button>
+        <div 
+            className="min-w-[100%] sm:min-w-[50%] md:min-w-[33%] lg:min-w-[25%] xl:min-w-[12.5%] transition-all duration-300 group hover:shadow-xl rounded-lg overflow-hidden relative bg-white"
+        >
+            <Link to={`/product/${product._id}`}>
+                <div className="relative overflow-hidden">
+                    <img
+                        //src="https://i.pinimg.com/1200x/42/64/25/4264253ef07eefee99f7ff6a6a3a208d.jpg"
+                        src={product.imageUrls[currentImageIndex] || FALLBACK_IMAGE_URL}
+                        alt={product.name}
+                        onError={handleImageError}
+                        className="w-full h-[350px] object-cover transition-transform duration-500 group-hover:scale-105"
+                        draggable="false"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
                 </div>
-            </div>
-            {/* Scrollable content with mouse drag */}
-            <div
-                ref={scrollRef}
-                className="container mx-auto overflow-x-scroll flex space-x-6 relative cursor-grab"
-            >
-                {newArrivals.map((product) => (
-                    <div
-                        key={product._id}
-                        className="min-w-[100%] sm:min-w-[50%] lg:min-w-[30%] relative"
-                    >
-                        <img
-                            src={product.images[0]?.url}
-                            alt={product.images[0]?.altText || product.name}
-                            className="w-full h-[500px] object-cover rounded-lg"
-                            draggable="false"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 backdrop-blur-md text-white p-4 rounded-b-lg">
-                            <Link to={`/product/${product._id}`} className="block ">
-                                <h4 className="font-medium text-black">{product.name}</h4>
-                                <p className="mt-1 text-black font-bold">${product.price}</p>
-                            </Link>
+                <div className="p-4">
+                    <h4 className="font-semibold text-lg text-gray-800 truncate mb-2">{product.name}</h4>
+                    <p className="font-bold text-xl text-[#ea2e0e] mb-3">${product.price.toFixed(2)}</p>
+                    
+                    {/* SIZES DISPLAY */}
+                    {product.sizes && product.sizes.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                            <span className="text-xs font-medium text-gray-500 mr-1">Sizes:</span>
+                            {product.sizes.slice(0, 4).map((size, index) => (
+                                <span 
+                                    key={index} 
+                                    className="text-xs font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full"
+                                >
+                                    {size}
+                                </span>
+                            ))}
+                            {product.sizes.length > 4 && (
+                                <span className="text-xs font-medium text-gray-500 px-2 py-0.5">+{product.sizes.length - 4} more</span>
+                            )}
                         </div>
-                    </div>
-                ))}
-            </div>
-        </section>
+                    ) : (
+                        <p className="text-xs text-gray-400">Sizes not listed.</p>
+                    )}
+                </div>
+            </Link>
+        </div>
     );
+};
+  // --- Main Render (Unchanged) ---
+  return (
+    <section className="py-16 px-4">
+      <div className="container mx-auto relative">
+        {/* Section Header */}
+        <div className="flex justify-between items-end mb-10 border-b pb-3">
+          <h2 className="text-4xl font-extrabold text-gray-900">
+            New Arrivals
+          </h2>
+          <Link
+            to="/shop"
+            className="text-sm font-semibold text-[#ea2e0e] hover:text-gray-900 transition duration-200"
+          >
+            View All Products &rarr;
+          </Link>
+        </div>
+
+        {/* --- Content Area --- */}
+        {loading ? (
+          <div className="flex space-x-6 overflow-hidden">
+            {Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+          </div>
+        ) : !hasToken ? (
+          // --- UX Refinement: Sign Up Prompt ---
+          <div className="text-center p-20 bg-gray-100 rounded-xl shadow-inner my-10 border-2 border-dashed border-gray-300">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+              Unlock Exclusive New Arrivals
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Please sign up or log in to view our full range of newly added
+              products.
+            </p>
+            <button
+              onClick={() => navigate("/signup")}
+              className="px-8 py-3 bg-[#ea2e0e] text-white rounded-lg text-lg font-semibold uppercase tracking-wider transition duration-300 hover:bg-red-700 shadow-lg"
+            >
+              Sign Up to View Arrivals
+            </button>
+          </div>
+        ) : (
+          // --- Scrollable Carousel ---
+          <>
+            <div
+              ref={scrollRef}
+              className="flex space-x-6 overflow-x-scroll scrollbar-hide relative cursor-grab"
+              onScroll={updateScrollButtons}
+            >
+              {products.map((product) => (
+                <ArrivalCard key={product._id} product={product} />
+              ))}
+            </div>
+
+            {/* Scroll buttons overlay */}
+            {products.length > 4 && ( // Only show buttons if there are enough products to scroll
+              <div className="hidden md:block absolute top-1/2 -translate-y-1/2 left-0 right-0 pointer-events-none">
+                <div className="flex justify-between mx-[-50px]">
+                  <button
+                    onClick={handleScrollLeft}
+                    disabled={!canScrollLeft}
+                    className={`p-3 rounded-full bg-white border border-gray-300 text-gray-800 transition-all duration-300 shadow-lg hover:bg-[#ea2e0e] hover:text-white pointer-events-auto ${
+                      !canScrollLeft
+                        ? "opacity-0 invisible"
+                        : "opacity-100 visible"
+                    }`}
+                    aria-label="Scroll left"
+                  >
+                    <FiChevronLeft className="text-2xl" />
+                  </button>
+                  <button
+                    onClick={handleScrollRight}
+                    disabled={!canScrollRight}
+                    className={`p-3 rounded-full bg-white border border-gray-300 text-gray-800 transition-all duration-300 shadow-lg hover:bg-[#ea2e0e] hover:text-white pointer-events-auto ${
+                      !canScrollRight
+                        ? "opacity-0 invisible"
+                        : "opacity-100 visible"
+                    }`}
+                    aria-label="Scroll right"
+                  >
+                    <FiChevronRight className="text-2xl" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Optional: Add a simple CSS class for hiding the default scrollbar */}
+      <style jsx="true">{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+      `}</style>
+    </section>
+  );
 };
 
 export default NewArrivals;
