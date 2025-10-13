@@ -73,6 +73,33 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     res.status(200).json(updatedProduct);
 });
+/**
+ * @desc    Get a single random product for the home page/discount showcase
+ * @route   GET /api/products/random
+ * @access  Public
+ */
+const getRandomProduct = asyncHandler(async (req, res) => {
+    // 1. Get total number of documents
+    const count = await Product.countDocuments();
+
+    if (count === 0) {
+        return res.status(200).json({ product: null, message: "No products found." });
+    }
+
+    // 2. Select a random index
+    const random = Math.floor(Math.random() * count);
+
+    // 3. Find one document, skipping the random number of documents
+    const product = await Product.findOne().skip(random);
+
+    if (!product) {
+        // Fallback in case of race condition/deleted product
+        return res.status(200).json({ product: null, message: "Could not retrieve a product." });
+    }
+
+    res.status(200).json(product);
+});
+
 
 /**
  * @desc    Delete a product
@@ -97,4 +124,5 @@ module.exports = {
     createProduct,
     updateProduct,
     deleteProduct,
+    getRandomProduct
 };

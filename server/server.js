@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const userRoutes = require("./Routes/userRoutes");
 const adminRoutes = require("./Routes/adminProductRoutes"); 
+const cartRoutes = require("./Routes/cart");
 const { errorHandler } = require("./Middleware/errorHandler");
 
 // --- DATABASE CONNECTION ---
@@ -38,6 +39,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes); 
 // 3. Link Admin Routes to the /api/admin/products endpoint
 app.use("/api/admin/products", adminRoutes);
+app.use("/api/cart",cartRoutes);
 
 // --- ERROR HANDLER MIDDLEWARE (Place after routes) ---
 // This is essential for clean error reporting in Express.

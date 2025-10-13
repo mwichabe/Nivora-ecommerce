@@ -6,6 +6,7 @@ const {
     getProducts, 
     createProduct, 
     updateProduct, 
+    getRandomProduct,
     deleteProduct 
 } = require('../Controllers/productController'); // This path must be correct!
 
@@ -13,7 +14,7 @@ const {
 const { protect, admin } = require('../Middleware/authMiddleware'); 
 
 // 3. Define routes using the functions (getProducts, createProduct, etc.)
-
+router.get("/random", getRandomProduct);
 // Assuming line 21 is here:
 router.route('/')
     .get(protect, getProducts) // ✅ getProducts is a function

@@ -11,7 +11,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false); 
   
   const navigate = useNavigate();
-  // Using useAuth to access the user's role and login status
+  // We don't rely on the context's user state *immediately* after login, 
+  // but we rely on the returned result object.
   const { login, isLoggedIn, user, authLoading } = useAuth(); 
 
   const handleSubmit = async (e) => {
@@ -23,21 +24,13 @@ const Login = () => {
       const result = await login(email, password);
 
       if (result.success) {
-        console.log('Login successful, state updated.');
-        console.log(isAdmin)
         
-        // --- START OF MODIFICATION: Explicit check and console log for debugging ---
-        // CRITICAL DEBUG STEP: Log the user object returned by the login function.
-        // If 'isAdmin: true' is missing here, the issue is on the backend or in AuthContext.
-        console.log('Login successful user data:', result.user);
-        
-        // Explicitly check if the user object exists AND isAdmin is strictly true
+        // 🟢 Using the returned user object from the login function for immediate redirect
         if (result.user && result.user.isAdmin === true) {
           navigate('/admin'); // Redirect admin users directly to the dashboard
         } else {
           navigate('/');      // Redirect standard users to the homepage
         }
-        // --- END OF MODIFICATION ---
 
       } else {
         setError(result.message);
@@ -63,6 +56,7 @@ const Login = () => {
   const isAdmin = isLoggedIn && user?.isAdmin;
 
   if (isAdmin) {
+    // ... (Already logged in Admin welcome screen logic remains the same)
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 md:p-8">
             <div className="max-w-md w-full flex rounded-2xl shadow-2xl overflow-hidden bg-white p-8 sm:p-12 space-y-8 text-center">
@@ -92,7 +86,7 @@ const Login = () => {
     );
   }
 
-  // --- STANDARD LOGIN FORM (Shown if not logged in or not admin) ---
+  // --- STANDARD LOGIN FORM ---
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 md:p-8">
       {/* Main Container: Two-column on desktop, single column on mobile */}

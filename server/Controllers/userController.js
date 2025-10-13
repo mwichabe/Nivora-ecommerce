@@ -143,10 +143,51 @@ const getMe = async (req, res) => {
     res.status(200).json({ isLoggedIn: false, user: null });
   }
 };
+//
+/**
+ * Updates user profile data (name, email, password).
+ * @route PUT /api/users/profile
+ * @access Private (requires authentication)
+ */
+const updateUserProfile = async (req, res) => {
+  // The 'protect' middleware should attach the user ID to req.user
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    // Update fields only if they are provided in the request body
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    // Only update password if a new one is provided
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+
+    try {
+      const updatedUser = await user.save();
+
+      // Return the updated user data (excluding password)
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        isAdmin: updatedUser.isAdmin,
+        message: "Profile updated successfully!",
+      });
+    } catch (error) {
+      // Handle potential validation errors (like duplicate email)
+      console.error("Profile update error:", error);
+      res.status(400).json({ message: "Error updating profile. Check email format or if email is already in use." });
+    }
+  } else {
+    res.status(404).json({ message: "User not found." });
+  }
+};
 
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   getMe,
+  updateUserProfile
 };

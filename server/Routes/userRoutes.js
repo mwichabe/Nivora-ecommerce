@@ -4,7 +4,8 @@ const {
     registerUser, 
     loginUser, 
     logoutUser, 
-    getMe 
+    getMe,
+    updateUserProfile,
 } = require("../Controllers/userController");
 const { protect } = require("../Middleware/authMiddleware");
 
@@ -19,6 +20,12 @@ router.post("/logout", logoutUser);
 
 // Route to check if the user is currently logged in
 router.get("/me", getMe);
+
+router.put("/profile", protect, updateUserProfile); // To update user data
+router.get("/profile", protect, (req, res) => { // To fetch user data
+    // The 'protect' middleware already attaches the user object (req.user)
+    res.json({ user: req.user });
+});
 
 
 module.exports = router;

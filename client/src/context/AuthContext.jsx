@@ -1,7 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-// Create the context object
 const AuthContext = createContext();
 
 // Base URL for your authentication API
@@ -12,17 +9,34 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Function to check user status based on the HTTP-only cookie
+  // Function to check user status based on the LOCAL STORAGE TOKEN
   const checkAuthStatus = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        // No token found, user is definitely logged out.
+        setUser(null);
+        setIsLoggedIn(false);
+        setAuthLoading(false);
+        return;
+    }
+
     try {
       setAuthLoading(true);
-      const response = await fetch(`${API_URL}/me`);
+      
+      // 🟢 CRITICAL CHANGE: Send the token in the Authorization header
+      const response = await fetch(`${API_URL}/me`, {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}` // Use token for authorization
+          }
+      });
+      
       const data = await response.json();
 
-      if (data.isLoggedIn && data.user) {
-        // --- MODIFICATION 1: Capture isAdmin during status check ---
-        // This ensures that if the user loads the page while already logged in, 
-        // the context gets the latest isAdmin value.
+      if (response.ok && data.user) {
+        // User data successfully fetched using the token
         setUser({ 
           _id: data.user._id, 
           name: data.user.name, 
@@ -31,16 +45,56 @@ export const AuthProvider = ({ children }) => {
         });
         setIsLoggedIn(true);
       } else {
+        // Token was invalid or expired, log out the user
+        console.warn('Token invalid or expired. Logging out.');
+        localStorage.removeItem('token');
         setUser(null);
         setIsLoggedIn(false);
       }
     } catch (error) {
       console.error('Error fetching user status:', error);
-      // Even on error, we assume the user is logged out
+      localStorage.removeItem('token');
       setUser(null);
       setIsLoggedIn(false);
     } finally {
       setAuthLoading(false);
+    }
+  };
+  //update user data
+  const updateUser = async (updateData) => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        return { success: false, message: 'Not authenticated.' };
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify(updateData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Update the user state with the returned data
+            setUser(prevUser => ({
+                ...prevUser,
+                name: data.name,
+                email: data.email,
+                // isAdmin and _id should remain unchanged
+            }));
+            return { success: true, message: data.message || 'Profile updated successfully!' };
+        } else {
+            return { success: false, message: data.message || 'Failed to update profile.' };
+        }
+    } catch (error) {
+        console.error('Update profile error:', error);
+        return { success: false, message: 'Network error or server connection failed.' };
     }
   };
 
@@ -49,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
   
-  // Custom login function for clarity, can be used by Login.jsx
+  // Custom login function
   const login = async (email, password) => {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -62,14 +116,14 @@ export const AuthProvider = ({ children }) => {
     const data = await response.json();
 
     if (response.ok) {
-      // --- MODIFICATION 2: Capture isAdmin during successful login ---
-      // This is crucial for the immediate UI update after form submission.
+      // 🟢 Store the token in localStorage
       localStorage.setItem('token', data.token);
+      
       setUser({ 
         _id: data._id, 
         name: data.name, 
         email: data.email,
-        isAdmin: data.isAdmin // <-- Capture isAdmin from the backend response
+        isAdmin: data.isAdmin 
       }); 
       setIsLoggedIn(true);
       return { success: true, user: data };
@@ -82,8 +136,14 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await fetch(`${API_URL}/logout`, { method: 'POST' });
-       localStorage.removeItem('token');
+      // If your backend /logout also revokes the token server-side, keep this. 
+      // Otherwise, the essential step is removing the token locally.
+      // ⚠️ NOTE: If using Bearer tokens, the POST request here won't use the cookie, 
+      // so it needs the token in the header too, but for simple logout, removing the 
+      // token locally is usually sufficient in a token-only setup.
+      // await fetch(`${API_URL}/logout`, { method: 'POST' }); 
+      
+      localStorage.removeItem('token');
       setUser(null);
       setIsLoggedIn(false);
     } catch(error) {
@@ -97,12 +157,13 @@ export const AuthProvider = ({ children }) => {
     authLoading, 
     login,
     logout,
-    checkAuthStatus
+    checkAuthStatus,
+    updateUser,
   };
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {/* Optionally show a global loading indicator while checking auth status */}
+      {/* Show children only after auth status is checked */}
       {authLoading ? (
         <div className="flex justify-center items-center h-screen text-lg font-medium text-gray-700">
           Authenticating...
