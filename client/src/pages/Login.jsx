@@ -29,7 +29,7 @@ const Login = () => {
         if (result.user && result.user.isAdmin === true) {
           navigate('/admin'); // Redirect admin users directly to the dashboard
         } else {
-          navigate('/');      // Redirect standard users to the homepage
+          navigate('/app');      // Redirect standard users to the homepage
         }
 
       } else {

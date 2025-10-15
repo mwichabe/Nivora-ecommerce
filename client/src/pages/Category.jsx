@@ -155,7 +155,7 @@ const CategoryPage = ({ categoryName }) => {
                 {categoryName} Collection
             </h1>
             <Link 
-                to="/" // Assuming a dashboard route exists
+                to="/app" // Assuming a dashboard route exists
                 className="flex items-center space-x-2 px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition duration-200 shadow-sm"
             >
                 <LayoutDashboard className="w-5 h-5" />

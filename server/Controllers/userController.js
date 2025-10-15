@@ -7,8 +7,8 @@ const jwt = require("jsonwebtoken");
  * @route POST /api/users/register
  */
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password)
+  const { name, email, password, phone } = req.body;
+  if (!name || !email || !password || !phone)
     return res.status(400).json({ message: "Please enter all fields." });
 
   try {
@@ -17,7 +17,7 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists." });
 
     // Creates a new user (isAdmin will default to false, or whatever your model sets)
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email, password, phone });
 
     const token = generateToken(user._id);
     // Set the JWT as an HTTP-only cookie
@@ -33,6 +33,7 @@ const registerUser = async (req, res) => {
         _id: user._id, 
         name: user.name, 
         email: user.email,
+        phone: user.phone,
         isAdmin: user.isAdmin,
         token,
     });
@@ -72,6 +73,7 @@ const loginUser = async (req, res) => {
             _id: user._id, 
             name: user.name, 
             email: user.email,
+            phone: user.phone,
             isAdmin: user.isAdmin,
             token,
         });
@@ -103,38 +105,38 @@ const logoutUser = (req, res) => {
  * @route GET /api/users/me
  */
 const getMe = async (req, res) => {
-  // Check if req.cookies.jwt exists but not yet verified by middleware
-  const token = req.cookies.jwt;
-  if (!token) {
-    return res.status(200).json({ isLoggedIn: false, user: null });
-  }
-
   try {
-    // Decode the token to get the user ID
+    // 🔹 Extract token from either cookie or Authorization header
+    const token =
+      req.cookies?.jwt ||
+      (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
+        : null);
+
+    if (!token) {
+      return res.status(200).json({ isLoggedIn: false, user: null });
+    }
+
+    // Verify and decode token
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Find the user by ID, excluding the password field
-    // This is a FRESH database read, so 'user' has the correct isAdmin value
     const user = await User.findById(decoded.id).select("-password");
 
     if (user) {
-      // FIX 4: Include isAdmin in the /me status check response
-      res
-        .status(200)
-        .json({
-          isLoggedIn: true,
-          user: { 
-              _id: user._id, 
-              name: user.name, 
-              email: user.email,
-              isAdmin: user.isAdmin,
-          },
-        });
+      return res.status(200).json({
+        isLoggedIn: true,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone, // ✅ phone will now appear
+          isAdmin: user.isAdmin,
+        },
+      });
     } else {
-      // Token was valid but user not found (e.g., deleted account)
-      res.status(200).json({ isLoggedIn: false, user: null });
+      return res.status(200).json({ isLoggedIn: false, user: null });
     }
   } catch (error) {
-    // Token is present but invalid/expired, clear the bad cookie
+    console.error("Error in getMe:", error);
     res.cookie("jwt", "", {
       httpOnly: true,
       expires: new Date(0),
@@ -143,6 +145,49 @@ const getMe = async (req, res) => {
     res.status(200).json({ isLoggedIn: false, user: null });
   }
 };
+
+// const getMe = async (req, res) => {
+//   // Check if req.cookies.jwt exists but not yet verified by middleware
+//   const token = req.cookies.jwt;
+//   if (!token) {
+//     return res.status(200).json({ isLoggedIn: false, user: null });
+//   }
+
+//   try {
+//     // Decode the token to get the user ID
+//     const decoded = jwt.verify(token, JWT_SECRET);
+//     // Find the user by ID, excluding the password field
+//     // This is a FRESH database read, so 'user' has the correct isAdmin value
+//     const user = await User.findById(decoded.id).select("-password");
+
+//     if (user) {
+//       // FIX 4: Include isAdmin in the /me status check response
+//       res
+//         .status(200)
+//         .json({
+//           isLoggedIn: true,
+//           user: { 
+//               _id: user._id, 
+//               name: user.name, 
+//               email: user.email,
+//               phone: user.phone,
+//               isAdmin: user.isAdmin,
+//           },
+//         });
+//     } else {
+//       // Token was valid but user not found (e.g., deleted account)
+//       res.status(200).json({ isLoggedIn: false, user: null });
+//     }
+//   } catch (error) {
+//     // Token is present but invalid/expired, clear the bad cookie
+//     res.cookie("jwt", "", {
+//       httpOnly: true,
+//       expires: new Date(0),
+//       sameSite: "Lax",
+//     });
+//     res.status(200).json({ isLoggedIn: false, user: null });
+//   }
+// };
 //
 /**
  * Updates user profile data (name, email, password).
@@ -157,6 +202,7 @@ const updateUserProfile = async (req, res) => {
     // Update fields only if they are provided in the request body
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
+    user.phone =req.body.phone || user.phone;
 
     // Only update password if a new one is provided
     if (req.body.password) {
@@ -171,6 +217,7 @@ const updateUserProfile = async (req, res) => {
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
+        phone: updatedUser.phone,
         isAdmin: updatedUser.isAdmin,
         message: "Profile updated successfully!",
       });

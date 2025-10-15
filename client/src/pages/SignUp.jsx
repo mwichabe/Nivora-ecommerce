@@ -10,6 +10,7 @@ const API_URL = 'http://localhost:5000/api/users';
 const SignUp = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
@@ -37,13 +38,13 @@ const SignUp = () => {
           'Content-Type': 'application/json',
         },
         // Backend expects 'name', 'email', and 'password'
-        body: JSON.stringify({ name: username, email, password }),
+        body: JSON.stringify({ name: username, email, phone, password }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Registration successful:', data);
+        console.log('Registration successful');
         
         // Update the global auth state and navigate
         await checkAuthStatus(); 
@@ -160,6 +161,20 @@ const SignUp = () => {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="relative">
+                <label htmlFor="username" className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="text"
+                  autoComplete="+254700000000"
+                  required
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] sm:text-sm transition duration-150"
+                  placeholder="+254704858069"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
 

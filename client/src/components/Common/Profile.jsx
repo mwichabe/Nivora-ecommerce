@@ -9,9 +9,9 @@ const Profile = () => {
     
     // Local state for form fields
     const [name, setName] = useState('');
-    // ⚠️ Removed email state setter, as it won't be edited via input
-    const [password, setPassword] = useState(''); // New password field
-    const [confirmPassword, setConfirmPassword] = useState(''); // Confirm password field
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     
     // UI state
     const [isEditing, setIsEditing] = useState(false);
@@ -23,8 +23,7 @@ const Profile = () => {
     useEffect(() => {
         if (!authLoading && user) {
             setName(user.name || '');
-            // ⚠️ Email state setting is no longer needed since it's displayed directly from user.email
-            // setEmail(user.email || '');
+            setPhone(user.phone || '');
         }
         
         if (!authLoading && !isLoggedIn) {
@@ -45,18 +44,8 @@ const Profile = () => {
 
         setIsLoading(true);
         
-        // Prepare data to send to the AuthContext function
-        const updateData = {
-            name,
-            // ⚠️ DO NOT include email in updateData, even if the backend allows it, 
-            // since the user can't change it here. We only update name/password.
-            // email: user.email, 
-        };
-        
-        // Only send password if it's set
-        if (password) {
-            updateData.password = password;
-        }
+        const updateData = { name, phone };
+        if (password) updateData.password = password;
 
         try {
             const result = await updateUser(updateData); 
@@ -64,11 +53,8 @@ const Profile = () => {
             if (result.success) {
                 setSuccess(result.message);
                 setIsEditing(false);
-                
-                // Clear password fields for security
                 setPassword('');
                 setConfirmPassword('');
-
             } else {
                 setError(result.message);
             }
@@ -108,7 +94,11 @@ const Profile = () => {
                             }`}
                         disabled={isLoading}
                     >
-                        {isEditing ? 'Cancel Edit' : <><HiOutlinePencil className="inline-block w-4 h-4 mr-1"/> Edit Profile</>}
+                        {isEditing ? 'Cancel Edit' : (
+                            <>
+                                <HiOutlinePencil className="inline-block w-4 h-4 mr-1" /> Edit Profile
+                            </>
+                        )}
                     </button>
                 </div>
                 
@@ -127,7 +117,7 @@ const Profile = () => {
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     
-                    {/* Name Field (Editable) */}
+                    {/* Name Field */}
                     <div>
                         <label htmlFor="name" className="text-sm font-medium text-gray-700 block mb-1">Name</label>
                         <input
@@ -141,25 +131,34 @@ const Profile = () => {
                         />
                     </div>
 
-                    {/* 🟢 MODIFIED: Email Field (Static Display Only) */}
+                    {/* 🟢 New: Phone Field */}
+                    <div>
+                        <label htmlFor="phone" className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
+                        <input
+                            id="phone"
+                            type="text"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            disabled={isFormDisabled}
+                            className={`w-full px-4 py-3 border rounded-lg text-gray-900 focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150 
+                                ${isFormDisabled ? 'bg-gray-100 border-gray-200' : 'bg-white border-gray-300'}`}
+                        />
+                    </div>
+
+                    {/* Email Field (Read-only) */}
                     <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Email address</label>
-                        <div
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg text-gray-600 bg-gray-100 text-base"
-                        >
+                        <div className="w-full px-4 py-3 border border-gray-200 rounded-lg text-gray-600 bg-gray-100 text-base">
                             {user.email}
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                            Email address cannot be changed.
-                        </p>
+                        <p className="mt-1 text-xs text-gray-500">Email address cannot be changed.</p>
                     </div>
                     
-                    {/* Password Fields (Only visible when editing) */}
+                    {/* Password Fields */}
                     {isEditing && (
                         <div className="pt-4 border-t border-gray-100 space-y-6">
                             <p className="text-sm text-gray-500 font-semibold">Change Password (optional)</p>
                             
-                            {/* New Password */}
                             <div>
                                 <label htmlFor="password" className="text-sm font-medium text-gray-700 block mb-1">New Password</label>
                                 <input
@@ -172,7 +171,6 @@ const Profile = () => {
                                 />
                             </div>
 
-                            {/* Confirm Password */}
                             <div>
                                 <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 block mb-1">Confirm New Password</label>
                                 <input
@@ -187,7 +185,7 @@ const Profile = () => {
                         </div>
                     )}
 
-                    {/* Submission Button (Only visible when editing) */}
+                    {/* Submit Button */}
                     {isEditing && (
                         <div>
                             <button
@@ -201,7 +199,7 @@ const Profile = () => {
                     )}
                 </form>
                 
-                {/* Admin Status Display */}
+                {/* Role Display */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
                     <p className="text-sm font-semibold text-gray-700">Account Status:</p>
                     <p className="mt-1 text-base">

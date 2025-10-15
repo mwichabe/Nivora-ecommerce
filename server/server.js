@@ -5,12 +5,13 @@ const cors = require("cors");
 const userRoutes = require("./Routes/userRoutes");
 const adminRoutes = require("./Routes/adminProductRoutes"); 
 const cartRoutes = require("./Routes/cart");
+const orderRoute = require("./Routes/orderRoutes");
 const { errorHandler } = require("./Middleware/errorHandler");
 
 // --- DATABASE CONNECTION ---
 mongoose
   .connect(
-    "mongodb+srv://mwichabecollins:ibkiwpxy8ixttyx5@cluster0.pfbrzgm.mongodb.net/"
+    "mongodb+srv://mwichabecollins:9dV1iOI0aqXWDFH8@cluster0.pfbrzgm.mongodb.net/"
   )
   .then(() => console.log("MongoDB Connected"))
   .catch((error) => console.log("MongoDB Connection Error:", error));
@@ -40,6 +41,7 @@ app.use("/api/users", userRoutes);
 // 3. Link Admin Routes to the /api/admin/products endpoint
 app.use("/api/admin/products", adminRoutes);
 app.use("/api/cart",cartRoutes);
+app.use('/api/orders', orderRoute);
 
 // --- ERROR HANDLER MIDDLEWARE (Place after routes) ---
 // This is essential for clean error reporting in Express.

@@ -183,9 +183,9 @@ const Navbar = () => {
                     Hello, {user?.name.split(" ")[0] || "User"}
                   </div>
                   <Link
-                    to="/profile"
+                    to="profile"
                     onClick={() => {
-                      navigate("/profile");
+                      navigate("profile");
                       setProfileMenuOpen(false);
                     }}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#ea2e0e]"

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// --- Corrected cartItemSchema ---
 const cartItemSchema = new mongoose.Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
@@ -24,8 +25,14 @@ const cartItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-}, { _id: false });
+}, 
+// Schema options are passed as the SECOND argument
+{
+    // The previous '{ _id: false }' is removed, so _id is automatically created.
+    timestamps: true,
+});
 
+// --- Corrected cartSchema ---
 const cartSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -34,7 +41,9 @@ const cartSchema = new mongoose.Schema({
         unique: true,
     },
     items: [cartItemSchema],
-}, {
+}, 
+// It's good practice to add timestamps to the parent schema too
+{
     timestamps: true,
 });
 

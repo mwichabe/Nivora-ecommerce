@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
           _id: data.user._id, 
           name: data.user.name, 
           email: data.user.email,
+          phone: data.user.phone,
           isAdmin: data.user.isAdmin
         });
         setIsLoggedIn(true);
@@ -84,8 +85,9 @@ export const AuthProvider = ({ children }) => {
             // Update the user state with the returned data
             setUser(prevUser => ({
                 ...prevUser,
-                name: data.name,
-                email: data.email,
+                name: data.name ?? prevUser.name,
+                email: data.email ?? prevUser.email,
+                phone: data.phone ?? prevUser.phone,
                 // isAdmin and _id should remain unchanged
             }));
             return { success: true, message: data.message || 'Profile updated successfully!' };
@@ -123,6 +125,7 @@ export const AuthProvider = ({ children }) => {
         _id: data._id, 
         name: data.name, 
         email: data.email,
+        phone: data.phone,
         isAdmin: data.isAdmin 
       }); 
       setIsLoggedIn(true);

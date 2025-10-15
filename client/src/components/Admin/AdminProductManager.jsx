@@ -197,7 +197,7 @@ const AdminProductManager = () => {
         // Clear the stored token to force a logout/re-authentication
         localStorage.removeItem('token'); 
         console.log("LOGOUT simulated.");
-        window.location.href = '/';
+        window.location.href = '/app';
     };
 
 

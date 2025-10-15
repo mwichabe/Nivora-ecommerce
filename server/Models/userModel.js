@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema({
         unique: true, 
         match: [/.+@.+\..+/, "Invalid email"] 
     },
+    phone: { 
+        type: String, 
+        required: true, 
+        minlength: 3, 
+        maxlength: 50 
+    },
     password: { 
         type: String, 
         required: true, 
@@ -23,7 +29,7 @@ const userSchema = new mongoose.Schema({
     isAdmin: {
         type: Boolean,
         required: true,
-        default: false // Default to false for all new users
+        default: false
     },
     // ---------------------------
     createdAt: { 
@@ -49,6 +55,10 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
+// If model already exists (cached), delete it to force reload
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
 
+const User = mongoose.model("User", userSchema);
 module.exports = User;
