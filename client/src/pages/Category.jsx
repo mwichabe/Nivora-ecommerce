@@ -2,52 +2,113 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, LayoutDashboard } from 'lucide-react'; 
 import axios from 'axios'; 
 import { Link, useNavigate } from 'react-router-dom'; 
-import { ProductModal } from '../components/Common/ProductModal'; // Assuming this path is correct
+import { ProductModal } from '../components/Common/ProductModal';
+// 🔥 NEW IMPORTS for Quick Add functionality 🔥
+import {useAuth} from '../context/AuthContext';
+import { useCart} from '../context/CartContext';
 
 // --- Constants ---
 const API_URL = 'http://localhost:5000/api/admin/products'; 
+const CART_API_URL = 'http://localhost:5000/api/cart'; // Add Cart API URL
 
-// --- ProductCard remains the same (defined here or imported) ---
-const ProductCard = ({ product, handleProductClick }) => (
-    <div 
-        className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden group transition-all hover:shadow-xl hover:scale-[1.02] duration-300 relative cursor-pointer"
-        onClick={() => handleProductClick(product)}
-    >
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
-        <img
-          src={product.imageUrls[0]}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {product.stock === 0 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
-                <span className="text-white text-lg font-bold uppercase tracking-widest p-2 border-2 border-white rounded-full">Sold Out</span>
-            </div>
-        )}
-        <span className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs font-medium px-3 py-1 rounded-full">
-            {product.category}
-        </span>
-      </div>
-      <div className="p-4 flex flex-col items-start">
-        <h3 className="text-lg font-bold text-gray-900 truncate w-full mb-1">
-          {product.name}
-        </h3>
-        <p className="text-2xl font-extrabold text-[#333] mb-3">
-          ${product.price.toFixed(2)}
-        </p>
-        <button
-          className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition duration-300 hover:bg-[#ea2e0e] disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={product.stock === 0}
-          onClick={(e) => { e.stopPropagation(); /* Add to cart logic */ }} 
+// --- Product Card Component (UPDATED with Quick Add Logic) ---
+const ProductCard = ({ product, handleProductClick, handleQuickAddToCart, addingProductId, selectedSizes, handleSizeSelect }) => {
+    const isAdding = addingProductId === product._id;
+    const isOneSize = !product.sizes || product.sizes.length === 0;
+    
+    // Get the currently selected size for THIS product
+    const currentSelectedSize = isOneSize ? 'One Size' : selectedSizes[product._id];
+
+    // Determine if the Add button should be enabled
+    const isAddButtonEnabled = product.stock > 0 && !isAdding && (isOneSize || currentSelectedSize);
+    
+    return (
+        <div 
+            className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden group transition-all hover:shadow-xl hover:scale-[1.02] duration-300 relative cursor-pointer"
+            onClick={() => handleProductClick(product)}
         >
-          {product.stock > 0 ? 'Quick Add' : 'Notify Me'}
-        </button>
-      </div>
-    </div>
-  );
+            <div className="relative aspect-square overflow-hidden bg-gray-100">
+                <img
+                    src={product.imageUrls[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {product.stock === 0 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+                        <span className="text-white text-lg font-bold uppercase tracking-widest p-2 border-2 border-white rounded-full">Sold Out</span>
+                    </div>
+                )}
+                <span className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    {product.category}
+                </span>
+            </div>
+            <div className="p-4 flex flex-col items-start">
+                <h3 className="text-lg font-bold text-gray-900 truncate w-full mb-1">
+                    {product.name}
+                </h3>
+                <p className="text-2xl font-extrabold text-[#333] mb-3">
+                    ${product.price.toFixed(2)}
+                </p>
+                
+                {/* 🔥 Size Selection Row 🔥 */}
+                <div className="w-full mb-3">
+                    {isOneSize ? (
+                        <span className="text-xs text-gray-500 font-medium">One Size</span>
+                    ) : (
+                        <div className="flex flex-wrap gap-1">
+                            {product.sizes.map((size) => (
+                                <button
+                                    key={size}
+                                    className={`text-xs px-2 py-1 rounded border transition-all duration-150 
+                                        ${currentSelectedSize === size 
+                                            ? 'bg-[#ea2e0e] text-white border-[#ea2e0e]' 
+                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                        }`
+                                    }
+                                    onClick={(e) => { e.stopPropagation(); handleSizeSelect(product._id, size); }}
+                                    disabled={product.stock === 0}
+                                >
+                                    {size}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <button
+                    className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition duration-300 hover:bg-[#c4250c] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={!isAddButtonEnabled}
+                    onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (isAddButtonEnabled) {
+                                handleQuickAddToCart(product); 
+                            }
+                        }}
+                >
+                    {isAdding 
+                        ? 'Adding...' 
+                        : product.stock === 0 
+                            ? 'Notify Me' 
+                            : !isOneSize && !currentSelectedSize
+                                ? 'Select Size'
+                                : 'Quick Add'
+                    }
+                </button>
+            </div>
+        </div>
+    );
+};
 
 
+// ----------------------------------------------------------------------
+// --- CategoryPage Component ---
+// ----------------------------------------------------------------------
 const CategoryPage = ({ categoryName }) => {
+  
+  // 🔥 HOOKS & CONTEXT 🔥
+  const { isLoggedIn } = useAuth(); 
+  const { refreshCart } = useCart();
+  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,10 +116,15 @@ const CategoryPage = ({ categoryName }) => {
   // Modal States
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  
+  // 🔥 NEW Quick Add States 🔥
+  const [addingProductId, setAddingProductId] = useState(null);
+  const [quickAddError, setQuickAddError] = useState(null);
+  const [selectedSizes, setSelectedSizes] = useState({});
+  
   const navigate = useNavigate();
 
-  // --- Data Fetching (Simplified: Relying on ALL data and client-side filter) ---
+  // --- Data Fetching ---
   useEffect(() => {
     const fetchProducts = async () => {
       const token = localStorage.getItem('token'); 
@@ -68,19 +134,17 @@ const CategoryPage = ({ categoryName }) => {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
         },
-        // REMOVED `params: { category: categoryName }` to fetch ALL data for safety
       };
 
       try {
         setLoading(true);
         
         if (!token) {
-            console.warn("No token found. Redirecting to /signup.");
             navigate('/signup'); 
             return; 
         }
 
-        // Fetch ALL products now, we'll filter them below
+        // Fetch ALL products
         const response = await axios.get(API_URL, config); 
         
         const safeProducts = response.data.map(p => ({
@@ -95,7 +159,6 @@ const CategoryPage = ({ categoryName }) => {
         console.error(`Error fetching products for client-side filtering:`, error);
 
         if (error.response && error.response.status === 401) {
-          console.error("Authorization failed. Redirecting to /signup.");
           localStorage.removeItem('token');
           navigate('/signup'); 
           return; 
@@ -107,21 +170,19 @@ const CategoryPage = ({ categoryName }) => {
         setLoading(false);
       }
     };
-    // NOTE: This now fetches ALL products, regardless of category
     fetchProducts();
   }, [navigate]); 
 
-  // --- Filtering & Searching Logic (FIXED: Category Filter + Search) ---
+  // --- Filtering & Searching Logic (No change) ---
   const filteredProducts = useMemo(() => {
     let tempProducts = [...products];
 
-    // 1. **MANDATORY CATEGORY FILTER** (FIX)
-    // Filter the products to only show those that match the page's categoryName prop
+    // 1. MANDATORY CATEGORY FILTER
     tempProducts = tempProducts.filter(
         (product) => product.category === categoryName
     );
 
-    // 2. Search Filter (Only applied to the currently filtered category)
+    // 2. Search Filter
     if (searchTerm) {
       const lowerCaseSearch = searchTerm.toLowerCase();
       tempProducts = tempProducts.filter(
@@ -131,9 +192,9 @@ const CategoryPage = ({ categoryName }) => {
       );
     }
     return tempProducts;
-  }, [products, searchTerm, categoryName]); // categoryName is now a dependency here
+  }, [products, searchTerm, categoryName]);
   
-  // --- Modal Handlers ---
+  // --- Modal Handlers (No change) ---
   const handleProductClick = (product) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
@@ -142,6 +203,74 @@ const CategoryPage = ({ categoryName }) => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
+  };
+
+  // 🔥 NEW: Handler for size selection 🔥
+  const handleSizeSelect = (productId, size) => {
+    setSelectedSizes(prevSizes => ({
+        ...prevSizes,
+        [productId]: size
+    }));
+  };
+
+  // 🔥 NEW: handleQuickAddToCart logic (Full Price / 0% Discount) 🔥
+  const handleQuickAddToCart = async (product) => {
+    if (addingProductId) return;
+
+    if (!isLoggedIn) {
+      setQuickAddError("You must be logged in to add items.");
+      setTimeout(() => setQuickAddError(null), 3000); 
+      return;
+    }
+
+    // Determine the size (uses selectedSizes state)
+    const size = product.sizes.length > 0 ? selectedSizes[product._id] : 'One Size';
+    
+    // Check if a size is required but not selected
+    if (product.sizes.length > 0 && !size) {
+        setQuickAddError("Please select a size first.");
+        setTimeout(() => setQuickAddError(null), 3000); 
+        return;
+    }
+
+    setAddingProductId(product._id);
+    setQuickAddError(null);
+
+    // Use the full product price (0% discount for this page)
+    const priceToSend = product.price; 
+
+    try {
+      const token = localStorage.getItem('token'); 
+
+      const response = await axios.post(CART_API_URL, {
+        productId: product._id,
+        size: size, 
+        quantity: 1,
+        // Send the full product price
+        price: parseFloat(priceToSend.toFixed(2)), 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+
+      if (response.status === 201) {
+        // Include size in the success message
+        setQuickAddError(`✅ Added: ${product.name} (${size})`); 
+        refreshCart();
+        setTimeout(() => setQuickAddError(null), 2000); 
+      } else {
+        setQuickAddError('Failed to add item to cart.');
+        setTimeout(() => setQuickAddError(null), 3000); 
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'A network error occurred.';
+      setQuickAddError(errorMessage);
+      setTimeout(() => setQuickAddError(null), 3000); 
+    } finally {
+      setAddingProductId(null);
+    }
   };
 
 
@@ -155,7 +284,7 @@ const CategoryPage = ({ categoryName }) => {
                 {categoryName} Collection
             </h1>
             <Link 
-                to="/app" // Assuming a dashboard route exists
+                to="/app" 
                 className="flex items-center space-x-2 px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition duration-200 shadow-sm"
             >
                 <LayoutDashboard className="w-5 h-5" />
@@ -177,6 +306,14 @@ const CategoryPage = ({ categoryName }) => {
             />
           </div>
         </div>
+        
+        {/* 🔥 NEW: Quick Add Status Message 🔥 */}
+        {quickAddError && (
+          <div className={`p-3 mb-4 text-sm font-medium rounded-lg border 
+            ${quickAddError.startsWith('✅') ? 'text-green-700 bg-green-100 border-green-300' : 'text-red-700 bg-red-100 border-red-300'}`}>
+              {quickAddError}
+          </div>
+        )}
 
         {/* --- Product Display --- */}
         {loading ? (
@@ -197,6 +334,11 @@ const CategoryPage = ({ categoryName }) => {
                   key={product._id} 
                   product={product} 
                   handleProductClick={handleProductClick}
+                  // 🔥 Pass Quick Add Props 🔥
+                  handleQuickAddToCart={handleQuickAddToCart}
+                  addingProductId={addingProductId}
+                  selectedSizes={selectedSizes}
+                  handleSizeSelect={handleSizeSelect}
               />
             ))}
           </div>

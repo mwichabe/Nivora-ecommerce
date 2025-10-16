@@ -13,14 +13,14 @@ import logo from "../../assets/logo.png";
 import CartDrawer from "./CartDrawer";
 import { useCart } from "../../context/CartContext";
 
-// Assuming these components exist for styling completeness
-const SearchBar = () => (
-  <input
-    type="text"
-    placeholder="Search..."
-    className="p-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#ea2e0e] w-32 hidden lg:block transition duration-150"
-  />
-);
+// // Assuming these components exist for styling completeness
+// const SearchBar = () => (
+//   <input
+//     type="text"
+//     placeholder="Search..."
+//     className="p-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#ea2e0e] w-32 hidden lg:block transition duration-150"
+//   />
+// );
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ const Navbar = () => {
         <div className="container mx-auto flex items-center justify-between py-4 px-6">
           {/* Left Logo: Image for better branding */}
           <div className="flex items-center space-x-2">
-            <Link to="/" className="flex items-center">
+            <Link to="/app" className="flex items-center">
               <img
                 src={logo}
                 alt="ONE MAN Logo"
@@ -134,10 +134,10 @@ const Navbar = () => {
 
           {/* Right Section: Search, Cart, Auth */}
           <div className="flex items-center space-x-5">
-            {/* Search Bar */}
+            {/* Search Bar
             <div className="hidden lg:block">
               <SearchBar />
-            </div>
+            </div> */}
 
             {/* Cart Icon */}
             <button

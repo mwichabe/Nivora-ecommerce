@@ -131,8 +131,8 @@ export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCart
         <div className="space-y-4">
             <h5 className="text-xl font-semibold text-gray-700">Payment Steps:</h5>
             <ol className="list-decimal list-inside space-y-3 text-gray-700 ml-4">
-                <li>Go to **Lipa Na M-Pesa** on your M-Pesa menu.</li>
-                <li>Select **Buy Goods and Services**.</li>
+                <li>Go to Lipa Na M-Pesa on your M-Pesa menu.</li>
+                <li>Select Buy Goods and Services.</li>
                 <li>Enter the Till Number:
                     <div className="flex items-center justify-between p-3 mt-2 bg-gray-100 rounded-lg border border-gray-300 shadow-sm">
                         <span className="text-2xl font-extrabold tracking-widest text-[#ea2e0e]">
@@ -147,11 +147,11 @@ export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCart
                         </button>
                     </div>
                 </li>
-                <li>Enter the exact amount: **Ksh {orderTotal.toLocaleString()}**.</li>
+                <li>Enter the exact amount: Ksh {orderTotal.toLocaleString()}.</li>
             </ol>
         </div>
         
-        {/* 2. Phone Number Confirmation */}
+        {/* 2. Phone Number Confirmation
         <div className="border-t pt-4">
             <h5 className="text-xl font-semibold text-gray-700 mb-3">Confirmation Contact:</h5>
             <p className="text-sm text-gray-600 mb-4">We'll use this number to link your payment and confirm the order status.</p>
@@ -189,16 +189,16 @@ export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCart
                     )}
                 </button>
             </form>
-        </div>
+        </div> */}
         
         {/* Footer Button - Now clears cart before navigating */}
-        <button 
+        {/* <button 
             onClick={handleViewOrderStatus} // Use the new handler here
             disabled={!orderId}
             className="w-full py-3 bg-[#ea2e0e] text-white font-semibold rounded-lg hover:bg-[#c4250c] transition duration-200"
         >
             View Order Status
-        </button>
+        </button> */}
       </div>
     </div>
   );

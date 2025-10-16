@@ -1,74 +1,32 @@
-import React, { useEffect, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { LayoutDashboard, Search, Filter } from "lucide-react";
 import axios from "axios";
-// Assuming ProductModal is imported from the correct relative path
+import { Link, useNavigate } from "react-router-dom";
 import { ProductModal } from "../Common/ProductModal";
+import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 
-// --- Constants ---
 const API_URL = "http://localhost:5000/api/admin/products";
-const MAX_PRODUCTS = 8;
-const FALLBACK_IMAGE_URL =
-  "https://placehold.co/600x400/000000/FFFFFF?text=No+Image";
+const CART_API_URL = "http://localhost:5000/api/cart";
 
 const NewArrivals = () => {
-  const scrollRef = useRef(null);
+  const { isLoggedIn } = useAuth();
+  const { refreshCart } = useCart();
   const navigate = useNavigate();
 
-  // UI States
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [hasToken, setHasToken] = useState(false);
-
-  // Data State
   const [products, setProducts] = useState([]);
-
-  // Modal States
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSizes, setSelectedSizes] = useState({});
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [addingProductId, setAddingProductId] = useState(null);
+  const [quickAddError, setQuickAddError] = useState(null);
 
-  // Mouse Drag States
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  // 🟢 NEW: Ref to track if the mouse has moved enough to count as a drag
-  const hasMoved = useRef(false); 
-  const DRAG_TOLERANCE = 5; // Pixels threshold for detecting a drag
-
-  // Handler to open the modal
-  const handleProductClick = (product) => {
-    // 🟢 MODIFIED: Check if the drag flag was set during the click cycle
-    if (hasMoved.current) {
-        // Log to debug: if you see this, the click was blocked due to drag detection
-        console.log('Click blocked: Detected as drag/scroll.');
-        return; 
-    }
-    
-    // Log to debug: if you see this, the modal should open
-    console.log('Click processed: Opening modal for', product.name);
-    setSelectedProduct(product);
-    setIsModalOpen(true);
-  };
-
-  // Handler to close the modal
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedProduct(null);
-  };
-
-  // --- Data Fetching Logic (Unchanged) ---
+  // Fetch only new arrivals (sorted by createdAt descending)
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    setHasToken(!!token);
-
-    if (!token) {
-      setLoading(false);
-      setProducts([]);
-      return;
-    }
-
     const fetchNewArrivals = async () => {
+      const token = localStorage.getItem("token");
       const config = {
         headers: {
           "Content-Type": "application/json",
@@ -79,27 +37,29 @@ const NewArrivals = () => {
       try {
         setLoading(true);
         const response = await axios.get(API_URL, config);
+        const sorted = response.data.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
-        const newArrivalsData = response.data
-          .slice(0, MAX_PRODUCTS)
-          .map((p) => ({
-            _id: p._id,
-            name: p.name,
-            price: p.price,
-            category: p.category || 'Apparel',
-            description: p.description || 'Quick details available.',
-            stock: p.stock !== undefined ? p.stock : 1,
-            sizes: Array.isArray(p.sizes) ? p.sizes : [],
-            imageUrls:
-              p.imageUrls && p.imageUrls.length > 0
-                ? p.imageUrls
-                : [FALLBACK_IMAGE_URL],
-          }));
+        const safeProducts = sorted.slice(0, 10).map((p) => ({
+          ...p,
+          imageUrls:
+            p.imageUrls && p.imageUrls.length > 0
+              ? p.imageUrls
+              : [
+                  "https://placehold.co/600x400/000000/FFFFFF?text=No+Image+Available",
+                ],
+        }));
 
-        setProducts(newArrivalsData);
+        setProducts(safeProducts);
       } catch (error) {
         console.error("Error fetching new arrivals:", error);
-        setProducts([]);
+        if (error.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/signup");
+        } else {
+          setProducts([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -108,250 +68,251 @@ const NewArrivals = () => {
     fetchNewArrivals();
   }, [navigate]);
 
-  // --- Scroll Logic (Unchanged) ---
-  const updateScrollButtons = () => {
-    const container = scrollRef.current;
-    if (container) {
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+  // Search filter
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        p.description.toLowerCase().includes(term)
+    );
+  }, [products, searchTerm]);
+
+  // Select size for quick add
+  const handleSizeSelect = (productId, size) => {
+    setSelectedSizes((prev) => ({ ...prev, [productId]: size }));
+  };
+
+  // Open/close modal
+  const handleProductClick = (product) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  // Quick Add Logic (identical to ShopPage)
+  const handleQuickAddToCart = async (product) => {
+    if (addingProductId) return;
+
+    if (!isLoggedIn) {
+      setQuickAddError("You must be logged in to add items.");
+      setTimeout(() => setQuickAddError(null), 3000);
+      return;
     }
-  };
 
-  const handleScrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -320, behavior: "smooth" });
+    const size =
+      product.sizes.length > 0
+        ? selectedSizes[product._id]
+        : "One Size";
+
+    if (product.sizes.length > 0 && !size) {
+      setQuickAddError("Please select a size first.");
+      setTimeout(() => setQuickAddError(null), 3000);
+      return;
     }
-  };
 
-  const handleScrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 320, behavior: "smooth" });
-    }
-  };
+    setAddingProductId(product._id);
+    setQuickAddError(null);
 
-  // --- Mouse Drag Logic (MODIFIED) ---
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-    hasMoved.current = false; // 🟢 Reset drag flag on press
-    scrollRef.current.style.cursor = "grabbing";
-  };
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        CART_API_URL,
+        {
+          productId: product._id,
+          size,
+          quantity: 1,
+          price: parseFloat(product.price.toFixed(2)),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-    scrollRef.current.style.cursor = "grab";
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    // Note: We don't reset hasMoved here; the click handler uses its final state
-    scrollRef.current.style.cursor = "grab";
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-
-    // 🟢 Set flag if movement exceeds tolerance
-    if (Math.abs(x - startX) > DRAG_TOLERANCE) {
-        hasMoved.current = true;
-    }
-  };
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (container) {
-      updateScrollButtons();
-      container.addEventListener("scroll", updateScrollButtons);
-      container.addEventListener("mousedown", handleMouseDown);
-      container.addEventListener("mouseup", handleMouseUp);
-      container.addEventListener("mouseleave", handleMouseLeave);
-      container.addEventListener("mousemove", handleMouseMove);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("scroll", updateScrollButtons);
-        container.removeEventListener("mousedown", handleMouseDown);
-        container.removeEventListener("mouseup", handleMouseUp);
-        container.removeEventListener("mouseleave", handleMouseLeave);
-        container.removeEventListener("mousemove", handleMouseMove);
+      if (response.status === 201) {
+        setQuickAddError(`✅ Added: ${product.name} (${size})`);
+        refreshCart();
+        setTimeout(() => setQuickAddError(null), 2000);
+      } else {
+        setQuickAddError("Failed to add item to cart.");
+        setTimeout(() => setQuickAddError(null), 3000);
       }
-    };
-  }, [isDragging, startX, scrollLeft, products]);
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Network error.";
+      setQuickAddError(errorMessage);
+      setTimeout(() => setQuickAddError(null), 3000);
+    } finally {
+      setAddingProductId(null);
+    }
+  };
 
-  // --- Helper Component: Skeleton Loader (Unchanged) ---
-  const CardSkeleton = () => (
-    <div className="min-w-[100%] sm:min-w-[50%] md:min-w-[33%] lg:min-w-[25%] xl:min-w-[12.5%] relative animate-pulse">
-      <div className="w-full h-[350px] bg-gray-200 rounded-lg"></div>
-      <div className="p-4">
-        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/4"></div>
-      </div>
-    </div>
-  );
+  // Reusable Product Card
+  const ProductCard = ({ product }) => {
+    const isAdding = addingProductId === product._id;
+    const isOneSize = product.sizes.length === 0;
+    const currentSelectedSize = isOneSize
+      ? "One Size"
+      : selectedSizes[product._id];
+    const isAddButtonEnabled =
+      product.stock > 0 && !isAdding && (isOneSize || currentSelectedSize);
 
-  // --- Helper Component: Product Card UI/UX ---
-  const ArrivalCard = ({ product }) => {
     return (
       <div
-        className="min-w-[100%] sm:min-w-[50%] md:min-w-[33%] lg:min-w-[25%] xl:min-w-[12.5%] transition-all duration-300 group hover:shadow-xl rounded-lg overflow-hidden relative bg-white cursor-pointer"
+        className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden group transition-all hover:shadow-xl hover:scale-[1.02] duration-300 cursor-pointer"
         onClick={() => handleProductClick(product)}
       >
-        <div className="relative overflow-hidden">
+        <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
             src={product.imageUrls[0]}
             alt={product.name}
-            className="w-full h-[350px] object-cover transition-transform duration-500 group-hover:scale-105"
-            draggable="false"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          {/* <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div> */}
+          {product.stock === 0 && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+              <span className="text-white text-lg font-bold uppercase tracking-widest p-2 border-2 border-white rounded-full">
+                Sold Out
+              </span>
+            </div>
+          )}
         </div>
-        <div className="p-4">
-          <h4 className="font-semibold text-lg text-gray-800 truncate mb-2">
+
+        <div className="p-4 flex flex-col items-start">
+          <h3 className="text-lg font-bold text-gray-900 truncate w-full mb-1">
             {product.name}
-          </h4>
-          <p className="font-bold text-xl text-[#ea2e0e] mb-3">
-            ${product.price.toFixed(2)}
+          </h3>
+          <p className="text-2xl font-extrabold text-[#333] mb-3">
+            Ksh {product.price.toFixed(2)}
           </p>
 
-          {/* SIZES DISPLAY */}
-          {product.sizes && product.sizes.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              <span className="text-xs font-medium text-gray-500 mr-1">
-                Sizes:
+          {/* Size selector */}
+          <div className="w-full mb-3">
+            {isOneSize ? (
+              <span className="text-xs text-gray-500 font-medium">
+                One Size
               </span>
-              {product.sizes.slice(0, 4).map((size, index) => (
-                <span
-                  key={index}
-                  className="text-xs font-semibold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full"
-                >
-                  {size}
-                </span>
-              ))}
-              {product.sizes.length > 4 && (
-                <span className="text-xs font-medium text-gray-500 px-2 py-0.5">
-                  +{product.sizes.length - 4} more
-                </span>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">Sizes not listed.</p>
-          )}
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {product.sizes.map((size) => (
+                  <button
+                    key={size}
+                    className={`text-xs px-2 py-1 rounded border transition-all duration-150 ${
+                      currentSelectedSize === size
+                        ? "bg-[#ea2e0e] text-white border-[#ea2e0e]"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSizeSelect(product._id, size);
+                    }}
+                    disabled={product.stock === 0}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition duration-300 hover:bg-[#c4250c] disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!isAddButtonEnabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isAddButtonEnabled) handleQuickAddToCart(product);
+            }}
+          >
+            {isAdding
+              ? "Adding..."
+              : product.stock === 0
+              ? "Notify Me"
+              : !isOneSize && !currentSelectedSize
+              ? "Select Size"
+              : "Quick Add"}
+          </button>
         </div>
       </div>
     );
   };
 
-  // --- Main Render ---
   return (
-    <section className="py-16 px-4">
-      <div className="container mx-auto relative">
-        {/* Section Header */}
-        <div className="flex justify-between items-end mb-10 border-b pb-3">
-          <h2 className="text-4xl font-extrabold text-gray-900">
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10 border-b pb-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-[#ea2e0e] tracking-tight">
             New Arrivals
-          </h2>
-          <Link
-            to="/shop"
-            className="text-sm font-semibold text-[#ea2e0e] hover:text-gray-900 transition duration-200"
-          >
-            View All Products &rarr;
-          </Link>
+          </h1>
         </div>
 
-        {/* --- Content Area --- */}
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search New Arrivals..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition duration-150 shadow-md text-base"
+          />
+        </div>
+
+        {quickAddError && (
+          <div
+            className={`p-3 mb-4 text-sm font-medium rounded-lg border ${
+              quickAddError.startsWith("✅")
+                ? "text-green-700 bg-green-100 border-green-300"
+                : "text-red-700 bg-red-100 border-red-300"
+            }`}
+          >
+            {quickAddError}
+          </div>
+        )}
+
+        {/* Product grid */}
         {loading ? (
-          <div className="flex space-x-6 overflow-hidden">
-            {Array(4)
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {Array(10)
               .fill(0)
               .map((_, i) => (
-                <CardSkeleton key={i} />
+                <div
+                  key={i}
+                  className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden p-4 space-y-3 animate-pulse"
+                >
+                  <div className="aspect-square bg-gray-200 rounded-lg"></div>
+                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-7 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-11 bg-gray-200 rounded w-full"></div>
+                </div>
               ))}
           </div>
-        ) : !hasToken ? (
-          // --- UX Refinement: Sign Up Prompt ---
-          <div className="text-center p-20 bg-gray-100 rounded-xl shadow-inner my-10 border-2 border-dashed border-gray-300">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Unlock Exclusive New Arrivals
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Please sign up or log in to view our full range of newly added
-              products.
-            </p>
-            <button
-              onClick={() => navigate("/signup")}
-              className="px-8 py-3 bg-[#ea2e0e] text-white rounded-lg text-lg font-semibold uppercase tracking-wider transition duration-300 hover:bg-red-700 shadow-lg"
-            >
-              Sign Up to View Arrivals
-            </button>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
           </div>
         ) : (
-          // --- Scrollable Carousel ---
-          <>
-            <div
-              ref={scrollRef}
-              className="flex space-x-6 overflow-x-scroll scrollbar-hide relative cursor-grab"
-              onScroll={updateScrollButtons}
-            >
-              {products.map((product) => (
-                <ArrivalCard key={product._id} product={product} />
-              ))}
-            </div>
-
-            {/* Scroll buttons overlay */}
-            {products.length > 4 && (
-              <div className="hidden md:block absolute top-1/2 -translate-y-1/2 left-0 right-0 pointer-events-none">
-                <div className="flex justify-between mx-[-50px]">
-                  <button
-                    onClick={handleScrollLeft}
-                    disabled={!canScrollLeft}
-                    className={`p-3 rounded-full bg-white border border-gray-300 text-gray-800 transition-all duration-300 shadow-lg hover:bg-[#ea2e0e] hover:text-white pointer-events-auto ${
-                      !canScrollLeft
-                        ? "opacity-0 invisible"
-                        : "opacity-100 visible"
-                    }`}
-                    aria-label="Scroll left"
-                  >
-                    <FiChevronLeft className="text-2xl" />
-                  </button>
-                  <button
-                    onClick={handleScrollRight}
-                    disabled={!canScrollRight}
-                    className={`p-3 rounded-full bg-white border border-gray-300 text-gray-800 transition-all duration-300 shadow-lg hover:bg-[#ea2e0e] hover:text-white pointer-events-auto ${
-                      !canScrollRight
-                        ? "opacity-0 invisible"
-                        : "opacity-100 visible"
-                    }`}
-                    aria-label="Scroll right"
-                  >
-                    <FiChevronRight className="text-2xl" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+          <div className="text-center p-16 border-4 border-dashed border-gray-200 rounded-2xl bg-white shadow-inner mt-10">
+            <Filter className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-700">
+              No New Arrivals Found
+            </h2>
+            <p className="text-gray-500 mt-2 text-lg">
+              Check back soon for the latest additions!
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Render the Product Modal */}
       {isModalOpen && <ProductModal product={selectedProduct} onClose={closeModal} />}
-
-      {/* Optional: Add a simple CSS class for hiding the default scrollbar */}
-      <style jsx="true">{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
-      `}</style>
-    </section>
+    </div>
   );
 };
 

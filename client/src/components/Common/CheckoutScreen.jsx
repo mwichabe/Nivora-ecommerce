@@ -18,6 +18,7 @@ const ShippingAddress = ({ formData, setFormData, onNext, user }) => {
     if (!formData.city) newErrors.city = "City is required.";
     if (!formData.postalCode) newErrors.postalCode = "Postal Code is required.";
     if (!formData.country) newErrors.country = "Country is required.";
+    if (!formData.phone || formData.phone.length < 9) newErrors.phone = "Valid phone number is required for payment.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -39,6 +40,7 @@ const ShippingAddress = ({ formData, setFormData, onNext, user }) => {
         ...prev,
         name: user.name || '',
         email: user.email || '',
+        phone: user.phone || '',
         country: 'Kenya',
       }));
     }
@@ -58,6 +60,20 @@ const ShippingAddress = ({ formData, setFormData, onNext, user }) => {
           <div>
             <label className={labelStyle}>Email</label>
             <input type="email" name="email" value={formData.email || user?.email || ''} readOnly className={`${inputStyle} bg-gray-100 text-gray-600 cursor-not-allowed`} />
+          </div>
+          {/* 🔑 MODIFIED: Phone Number Input Field */}
+          <div>
+            <label htmlFor="phone" className={labelStyle}>Phone Number (Payment Contact)</label>
+            <input 
+                type="tel" 
+                id="phone"
+                name="phone" 
+                value={formData.phone || ''}
+                onChange={handleChange} 
+                className={inputStyle} 
+                placeholder="e.g., 07XXXXXXXX"
+            />
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
           </div>
       </div>
       <div>
@@ -258,6 +274,7 @@ const CheckoutScreen = () => {
       taxPrice: tax,
       shippingPrice: formData.shippingCost,
       totalPrice: orderTotal,
+      phone: formData.phone
     };
 
     try {
@@ -276,6 +293,7 @@ const CheckoutScreen = () => {
       if (response.ok) {
         // SUCCESS: DO NOT refreshCart() here.
         // It will be refreshed when the user navigates away from the modal.
+        //console.log(`data being sent`,data)
         return data; // Return data for OrderReview to launch modal
       } else {
         setError(data.message || 'Failed to place order. Please try again.');

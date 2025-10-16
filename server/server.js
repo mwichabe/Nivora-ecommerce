@@ -6,6 +6,8 @@ const userRoutes = require("./Routes/userRoutes");
 const adminRoutes = require("./Routes/adminProductRoutes"); 
 const cartRoutes = require("./Routes/cart");
 const orderRoute = require("./Routes/orderRoutes");
+const contactRoute = require("./Routes/contactRoutes");
+const subscribeRoute = require("./Routes/subscriberRoute");
 const { errorHandler } = require("./Middleware/errorHandler");
 
 // --- DATABASE CONNECTION ---
@@ -42,11 +44,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin/products", adminRoutes);
 app.use("/api/cart",cartRoutes);
 app.use('/api/orders', orderRoute);
-
-// --- ERROR HANDLER MIDDLEWARE (Place after routes) ---
-// This is essential for clean error reporting in Express.
-// Ensure you create this file if you haven't yet!
-// app.use(errorHandler); 
+app.use('/api/contact',contactRoute);
+app.use('/api/subscribe',subscribeRoute);
 
 // --- SERVER START ---
 app.listen(PORT, () => console.log(`Server is now running on PORT ${PORT}`));

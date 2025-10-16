@@ -25,7 +25,6 @@ const CheckIcon = ({ className }) => (
 
 const ProductDetail = () => {
   // Destructuring isLoggedIn from the context stub
-  // This hook now resolves internally, fixing the compilation error.
   const { isLoggedIn } = useAuth(); 
   const { refreshCart } = useCart();
 
@@ -83,46 +82,75 @@ const ProductDetail = () => {
     fetchRandomProduct();
   }, []); // Run only once on mount
 
+  // Helper function to format price
+  const formatPrice = (price) => `Ksh ${(price).toFixed(2)}`;
+
+  // --- Derived Calculations (moved up to be available for handleAddToCart) ---
+  let originalPrice = 0;
+  let discountedPrice = 0;
+  const DISCOUNT_RATE = 0.20; // Fixed 20% discount
+
+  if (product) {
+    originalPrice = product.price; 
+    discountedPrice = originalPrice * (1 - DISCOUNT_RATE);
+    // Note: discountPercentage is still calculated for display later
+  }
+  // ----------------------------
+
   // Handles the API call to add the item to the cart
   const handleAddToCart = async () => {
-    // Note: isLoggedIn is determined by the stub if no AuthProvider wraps this component,
-    // which will currently default to false.
+    
+    // Pre-check: Not logged in
     if (!isLoggedIn) {
-      // NOTE: If you are logged in, you must ensure your root component wraps this 
-      // component with the actual AuthProvider context.
       setError("You must be logged in to add items to your cart.");
-      // Clear error after 5 seconds
       setTimeout(() => setError(null), 5000); 
       return;
     }
 
-    // Check size selection only if sizes are available
+    // Pre-check: Size not selected
     if (product.sizes.length > 0 && !selectedSize) {
       setError("Please select a size before adding to cart.");
-      // Clear error after 5 seconds
       setTimeout(() => setError(null), 5000); 
       return;
     }
     
+    // Pre-check: Product data missing
+    if (!product) {
+      setError("Cannot add to cart: Product data is unavailable.");
+      setTimeout(() => setError(null), 5000); 
+      return;
+    }
+
     setError(null);
     setSuccessMessage('');
     setIsAdding(true);
+    
+    // Assuming DISCOUNT_RATE is defined as a constant in this file (e.g., const DISCOUNT_RATE = 0.20;)
+    const DISCOUNT_RATE = 0.20; 
+    
+    // ✅ MODIFICATION: Calculate the discounted price (20% off)
+    const priceToSend = product.price * (1 - DISCOUNT_RATE);
+
+    // Determine the size to send
+    const finalSize = selectedSize || (product.sizes.length === 0 ? 'One Size' : null);
+    const quantity = 1;
 
     try {
-      const token = localStorage.getItem('token'); // Get the auth token
+      const token = localStorage.getItem('token'); 
 
-      // Using the correct CART_API_URL
+      // Use axios for consistency if possible, but fetch works too. Sticking to fetch as provided.
       const response = await fetch(CART_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Send the token for authentication
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           productId: product._id,
-          // Use 'One Size' if sizes array is empty, otherwise use selectedSize
-          size: selectedSize || (product.sizes.length === 0 ? 'One Size' : null), 
-          quantity: 1,
+          size: finalSize, 
+          quantity: quantity,
+          // ✅ MODIFICATION: Send the discounted price (Product Details price rule)
+          price: parseFloat(priceToSend.toFixed(2)), 
         }),
       });
 
@@ -131,7 +159,6 @@ const ProductDetail = () => {
       if (response.ok) {
         setSuccessMessage(data.message || 'Item added to cart successfully!');
         refreshCart();
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(''), 3000); 
       } else {
         setError(data.message || 'Failed to add item to cart. Please try again.');
@@ -146,22 +173,9 @@ const ProductDetail = () => {
     }
   };
 
-  // Helper function to format price
-  const formatPrice = (price) => `$${(price).toFixed(2)}`;
-
-  // --- Derived Calculations ---
-  let originalPrice = 0;
-  let discountedPrice = 0;
-  let discountPercentage = 0;
-
-  if (product) {
-    // 20% fixed discount as requested
-    originalPrice = product.price; 
-    const discountRate = 0.20;
-    discountedPrice = originalPrice * (1 - discountRate);
-    discountPercentage = discountRate * 100;
-  }
-  // ----------------------------
+  // --- Derived Calculations for Display (can remain here) ---
+  const discountPercentage = DISCOUNT_RATE * 100;
+  // ----------------------------------------------------------
 
   // --- Loading and Error States ---
   if (loading) {
@@ -180,14 +194,16 @@ const ProductDetail = () => {
 
 
   if (error || !product) {
+    // Note: The original logic here was confusing. It should primarily check for errors 
+    // or if a product wasn't found, not just login status.
     return (
       <div className="bg-gray-100 min-h-screen py-12 flex items-center justify-center px-4">
         <div className="max-w-md w-full p-10 bg-white shadow-2xl rounded-xl text-center border-t-4 border-[#ea2e0e]">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Not logged in
+            {product === null ? "Product Not Found" : "Error Loading Data"}
           </h2>
           <p className="text-gray-600">
-            Login to add to cart.
+            {error || (product === null ? "The requested product is currently unavailable." : "An unexpected error occurred.")}
           </p>
         </div>
       </div>

@@ -3,12 +3,19 @@ import { Search, Filter, LayoutDashboard, ChevronDown } from 'lucide-react';
 import axios from 'axios'; 
 import { Link, useNavigate } from 'react-router-dom'; 
 import { ProductModal } from '../components/Common/ProductModal';
+import {useAuth} from '../context/AuthContext';
+import { useCart} from '../context/CartContext';
 
 // --- Constants ---
 const API_URL = 'http://localhost:5000/api/admin/products'; 
+const CART_API_URL = 'http://localhost:5000/api/cart';
 const CATEGORIES = ["All", "Men", "Women", "Top Wear", "Bottom Wear", "Accessories"];
 
 const ShopPage = () => {
+
+  const { isLoggedIn } = useAuth(); 
+  const { refreshCart } = useCart();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,12 +24,16 @@ const ShopPage = () => {
   // NEW STATES for Modal/Image View
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [addingProductId, setAddingProductId] = useState(null);
+  const [quickAddError, setQuickAddError] = useState(null);
+  
+  // 🔥 NEW STATE: Maps productId to selected size (e.g., { 'id123': 'M', 'id456': 'One Size' })
+  const [selectedSizes, setSelectedSizes] = useState({});
   
   const navigate = useNavigate();
 
   // --- Data Fetching (Auth Logic) ---
   useEffect(() => {
-    // ... (Auth and Data fetching logic remains the same) ...
     const fetchProducts = async () => {
       const token = localStorage.getItem('token'); 
 
@@ -47,16 +58,12 @@ const ShopPage = () => {
 
       } catch (error) {
         console.error("Error fetching products:", error);
-
         if (error.response && error.response.status === 401) {
-          console.error("Authorization failed. Redirecting to /signup.");
           localStorage.removeItem('token');
           navigate('/signup'); 
           return; 
         }
-        
         setProducts([]); 
-        
       } finally {
         setLoading(false);
       }
@@ -81,6 +88,14 @@ const ShopPage = () => {
     return tempProducts;
   }, [products, activeCategory, searchTerm]);
 
+  // 🔥 NEW: Handler for size selection
+  const handleSizeSelect = (productId, size) => {
+    setSelectedSizes(prevSizes => ({
+        ...prevSizes,
+        [productId]: size
+    }));
+  };
+
   // --- Modal Handlers ---
   const handleProductClick = (product) => {
     setSelectedProduct(product);
@@ -92,53 +107,159 @@ const ShopPage = () => {
     setSelectedProduct(null);
   };
 
+ const handleQuickAddToCart = async (product) => {
+    if (addingProductId) return;
 
-  // --- Product Card Component (UPDATED with onClick) ---
-  const ProductCard = ({ product }) => (
-    <div 
-        className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden group transition-all hover:shadow-xl hover:scale-[1.02] duration-300 relative cursor-pointer"
-        onClick={() => handleProductClick(product)} // NEW: Click opens modal
-    >
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
-        <img
-          src={product.imageUrls[0]}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {product.stock === 0 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
-                <span className="text-white text-lg font-bold uppercase tracking-widest p-2 border-2 border-white rounded-full">Sold Out</span>
-            </div>
-        )}
-        <span className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs font-medium px-3 py-1 rounded-full">
-            {product.category}
-        </span>
-      </div>
-      <div className="p-4 flex flex-col items-start">
-        <h3 className="text-lg font-bold text-gray-900 truncate w-full mb-1">
-          {product.name}
-        </h3>
-        <p className="text-2xl font-extrabold text-[#333] mb-3">
-          ${product.price.toFixed(2)}
-        </p>
-        <button
-          className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition duration-300 hover:bg-[#ea2e0e] disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={product.stock === 0}
-          onClick={(e) => { e.stopPropagation(); /* Add to cart logic */ }} // Prevents modal from opening when clicking button
+    if (!isLoggedIn) {
+      setQuickAddError("You must be logged in to add items.");
+      setTimeout(() => setQuickAddError(null), 3000); 
+      return;
+    }
+
+    // Determine the size (uses selectedSizes state from ShopPage component)
+    const size = product.sizes.length > 0 ? selectedSizes[product._id] : 'One Size';
+    
+    // Check if a size is required but not selected
+    if (product.sizes.length > 0 && !size) {
+        setQuickAddError("Please select a size first.");
+        setTimeout(() => setQuickAddError(null), 3000); 
+        return;
+    }
+
+    setAddingProductId(product._id);
+    setQuickAddError(null);
+
+    // ✅ MODIFICATION: Use the full product price (0% discount)
+    const priceToSend = product.price; 
+
+    try {
+      const token = localStorage.getItem('token'); 
+
+      const response = await axios.post(CART_API_URL, {
+        productId: product._id,
+        size: size, 
+        quantity: 1,
+        // Send the full product price (Shop Page price rule)
+        price: parseFloat(priceToSend.toFixed(2)), 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+
+      if (response.status === 201) {
+        // ✅ MODIFICATION: Include size in the success message
+        setQuickAddError(`✅ Added: ${product.name} (${size})`); 
+        refreshCart();
+        setTimeout(() => setQuickAddError(null), 2000); 
+      } else {
+        setQuickAddError('Failed to add item to cart.');
+        setTimeout(() => setQuickAddError(null), 3000); 
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'A network error occurred.';
+      setQuickAddError(errorMessage);
+      setTimeout(() => setQuickAddError(null), 3000); 
+    } finally {
+      setAddingProductId(null);
+    }
+  };
+ // --- Product Card Component (UPDATED to include size selection) ---
+const ProductCard = ({ product }) => {
+    const isAdding = addingProductId === product._id;
+    const isOneSize = product.sizes.length === 0;
+    
+    // Get the currently selected size for THIS product
+    const currentSelectedSize = isOneSize ? 'One Size' : selectedSizes[product._id];
+
+    // Determine if the Add button should be enabled
+    const isAddButtonEnabled = product.stock > 0 && !isAdding && (isOneSize || currentSelectedSize);
+    
+    return (
+        <div 
+            className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden group transition-all hover:shadow-xl hover:scale-[1.02] duration-300 relative cursor-pointer"
+            onClick={() => handleProductClick(product)}
         >
-          {product.stock > 0 ? 'Quick Add' : 'Notify Me'}
-        </button>
-      </div>
-    </div>
-  );
+            <div className="relative aspect-square overflow-hidden bg-gray-100">
+                <img
+                    src={product.imageUrls[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {product.stock === 0 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+                        <span className="text-white text-lg font-bold uppercase tracking-widest p-2 border-2 border-white rounded-full">Sold Out</span>
+                    </div>
+                )}
+                <span className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    {product.category}
+                </span>
+            </div>
+            <div className="p-4 flex flex-col items-start">
+                <h3 className="text-lg font-bold text-gray-900 truncate w-full mb-1">
+                    {product.name}
+                </h3>
+                <p className="text-2xl font-extrabold text-[#333] mb-3">
+                    Ksh {product.price.toFixed(2)}
+                </p>
+                
+                {/* 🔥 NEW: Size Selection Row 🔥 */}
+                <div className="w-full mb-3">
+                    {isOneSize ? (
+                        <span className="text-xs text-gray-500 font-medium">One Size</span>
+                    ) : (
+                        <div className="flex flex-wrap gap-1">
+                            {product.sizes.map((size) => (
+                                <button
+                                    key={size}
+                                    className={`text-xs px-2 py-1 rounded border transition-all duration-150 
+                                        ${currentSelectedSize === size 
+                                            ? 'bg-[#ea2e0e] text-white border-[#ea2e0e]' 
+                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                        }`
+                                    }
+                                    // Stop propagation prevents the card's handleProductClick from firing
+                                    onClick={(e) => { e.stopPropagation(); handleSizeSelect(product._id, size); }}
+                                    disabled={product.stock === 0}
+                                >
+                                    {size}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-  // --- Main Render ---
+                <button
+                    className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition duration-300 hover:bg-[#c4250c] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={!isAddButtonEnabled}
+                    onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (isAddButtonEnabled) {
+                                handleQuickAddToCart(product); 
+                            }
+                        }}
+                >
+                    {isAdding 
+                        ? 'Adding...' 
+                        : product.stock === 0 
+                            ? 'Notify Me' 
+                            : !isOneSize && !currentSelectedSize
+                                ? 'Select Size'
+                                : 'Quick Add'
+                    }
+                </button>
+            </div>
+        </div>
+    );
+};
+
+  // --- Main Render (No change here) ---
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         
-        {/* ... (Header and Controls sections remain the same) ... */}
-        {/* --- Header Section: Title & Dashboard Link --- */}
+        {/* ... (Header and Controls sections) ... */}
         <div className="flex justify-between items-center mb-10 border-b pb-4">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-[#ea2e0e] tracking-tight">
                 Shop Collection
@@ -207,10 +328,17 @@ const ShopPage = () => {
           </div>
 
         </div>
+        
+        {/* --- Quick Add Status Message --- */}
+        {quickAddError && (
+          <div className={`p-3 mb-4 text-sm font-medium rounded-lg border 
+            ${quickAddError.startsWith('✅') ? 'text-green-700 bg-green-100 border-green-300' : 'text-red-700 bg-red-100 border-red-300'}`}>
+              {quickAddError}
+          </div>
+        )}
 
         {/* --- Product Display --- */}
         {loading ? (
-          // ... (Skeleton Loader remains the same) ...
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {Array(10).fill(0).map((_, i) => (
               <div key={i} className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden p-4 space-y-3 animate-pulse">
@@ -228,7 +356,6 @@ const ShopPage = () => {
             ))}
           </div>
         ) : (
-          // ... (Empty State remains the same) ...
           <div className="text-center p-16 border-4 border-dashed border-gray-200 rounded-2xl bg-white shadow-inner mt-10">
             <Filter className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-700">No Matches Found</h2>

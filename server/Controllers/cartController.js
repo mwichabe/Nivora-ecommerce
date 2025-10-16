@@ -4,18 +4,53 @@ const Product = require('../Models/product');
 const mongoose = require('mongoose');
 
 
+// Helper function to find the cart and populate user (including phone) and products
+const getPopulatedCart = async (userId) => {
+    return await Cart.findOne({ user: userId })
+        .populate({
+            path: 'user', // Populate the user field
+            select: 'phone name email' // Include the phone field (and maybe name/email for context)
+        })
+        .populate('items.product'); // Populate the product details for cart items
+};
+
+// Function to structure the response
+const formatCartResponse = (cart) => {
+    if (!cart) {
+        return { items: [], totalItems: 0, userPhone: null };
+    }
+
+    const totalItems = cart.items.reduce((acc, item) => acc + item.quantity, 0);
+
+    return {
+        items: cart.items,
+        totalItems,
+        // Access the phone from the populated user object
+        userPhone: cart.user ? cart.user.phone : null, 
+        // Note: You can also return other user details if needed, e.g., userName: cart.user.name
+    };
+};
+/**
+ * @desc    Add a product to the cart or update quantity
+ * @route   POST /api/cart
+ * @access  Private
+ */
 /**
  * @desc    Add a product to the cart or update quantity
  * @route   POST /api/cart
  * @access  Private
  */
 const addToCart = asyncHandler(async (req, res) => {
-    const { productId, size, quantity = 1 } = req.body;
+    // 1. EXTRACT 'price' from the request body
+    const { productId, size, quantity = 1, price } = req.body;
     const userId = req.user._id;
+    
+    // Declare finalPrice here so it's accessible in the entire function scope
+    let finalPrice; 
 
-    if (!productId || !size) {
+    if (!productId || !size || price === undefined) {
         res.status(400);
-        throw new Error('Please provide product ID and size.');
+        throw new Error('Please provide product ID, size, and price.');
     }
 
     const productToAdd = await Product.findById(productId);
@@ -25,6 +60,47 @@ const addToCart = asyncHandler(async (req, res) => {
         throw new Error('Product not found.');
     }
     
+    // =========================================================================
+    // ⚠️ SECURITY NOTE: Validate the price against the expected prices ⚠️
+    // =========================================================================
+    const FULL_PRICE = productToAdd.price;
+    const DISCOUNT_RATE = 0.20; // 20%
+    const EXPECTED_DISCOUNTED_PRICE = FULL_PRICE * (1 - DISCOUNT_RATE);
+    
+    // Define the two valid server-calculated prices
+    const pricesToCheck = {
+        full: parseFloat(FULL_PRICE.toFixed(2)),
+        discounted: parseFloat(EXPECTED_DISCOUNTED_PRICE.toFixed(2))
+    };
+
+    // The price the client sent, rounded for comparison
+    const clientPriceRounded = parseFloat(price.toFixed(2));
+    
+    // --- Determine if client price is valid ---
+    const isFullPrice = clientPriceRounded === pricesToCheck.full;
+    const isDiscountedPrice = clientPriceRounded === pricesToCheck.discounted;
+
+    if (isFullPrice) {
+        // Case 1: Client sent the full price (from ShopPage) - Use it.
+        finalPrice = pricesToCheck.full;
+    } else if (isDiscountedPrice) {
+        // Case 2: Client sent the discounted price (from ProductDetails) - Use it.
+        finalPrice = pricesToCheck.discounted;
+    } else {
+        // Case 3: Price Mismatch/Tampering Detected!
+        // BEST PRACTICE: Default to the highest valid price (Full Price) for security
+        // The client-sent price is NOT one of the two expected prices. 
+        // We will default to the full price and log a strong warning.
+        finalPrice = pricesToCheck.full;
+        
+        console.warn(
+            `SECURITY WARNING: Price mismatch for product ${productId}. ` + 
+            `Client sent ${clientPriceRounded}. Neither full (${pricesToCheck.full}) nor discounted ` +
+            `(${pricesToCheck.discounted}) price matched. Using server-calculated FULL price: ${finalPrice}`
+        );
+    }
+    // =========================================================================
+
     // Find the user's cart or create a new one
     let cart = await Cart.findOne({ user: userId });
 
@@ -38,8 +114,10 @@ const addToCart = asyncHandler(async (req, res) => {
     );
 
     if (itemIndex > -1) {
-        // Item exists: update quantity
+        // Item exists: update quantity and price
         cart.items[itemIndex].quantity += quantity;
+        cart.items[itemIndex].price = finalPrice; 
+        
     } else {
         // Item does not exist: add new item
         cart.items.push({
@@ -47,19 +125,21 @@ const addToCart = asyncHandler(async (req, res) => {
             name: productToAdd.name,
             size: size,
             quantity: quantity,
-            price: productToAdd.price,
+            price: finalPrice, 
         });
     }
 
     await cart.save();
     
-    // Optionally return the whole updated cart
+    // Retrieve the newly updated cart with populated user and product info
+    const updatedCart = await getPopulatedCart(userId);
+
+    // Return the formatted response including the phone number
     res.status(201).json({ 
         message: `${productToAdd.name} (${size}) added to cart!`, 
-        cart 
+        ...formatCartResponse(updatedCart) 
     });
 });
-
 /**
  * @desc    Get user's cart
  * @route   GET /api/cart
@@ -67,18 +147,16 @@ const addToCart = asyncHandler(async (req, res) => {
  */
 const getCart = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const cart = await Cart.findOne({ user: userId }).populate('items.product');
+    const cart = await getPopulatedCart(userId);
 
-    if (!cart) {
-        return res.status(200).json({ items: [], totalItems: 0 });
-    }
+    // if (!cart) {
+    //     return res.status(200).json({ items: [], totalItems: 0 });
+    // }
 
-    const totalItems = cart.items.reduce((acc, item) => acc + item.quantity, 0);
+    // const totalItems = cart.items.reduce((acc, item) => acc + item.quantity, 0);
 
-    res.status(200).json({
-        items: cart.items,
-        totalItems,
-    });
+    // Return the formatted response including the phone number
+    res.status(200).json(formatCartResponse(cart));
 });
 /**
  * @desc    Update quantity of an item in the cart
@@ -90,7 +168,6 @@ const updateCartItem = asyncHandler(async (req, res) => {
     const { itemId } = req.params;
     const userId = req.user._id;
 
-    // 🔑 FIX 3: Validate itemId as a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(itemId)) {
         res.status(400);
         throw new Error('Invalid Cart Item ID format.');
@@ -120,15 +197,13 @@ const updateCartItem = asyncHandler(async (req, res) => {
     item.quantity = quantity;
     await cart.save();
 
-    // Re-populate and return the updated cart items
-    const updatedCart = await Cart.findOne({ user: userId }).populate('items.product');
-    const totalItems = updatedCart.items.reduce((acc, currentItem) => acc + currentItem.quantity, 0);
+    // Re-fetch the updated cart with populated data (including phone)
+    const updatedCart = await getPopulatedCart(userId);
 
-    // 🔑 FIX 4: Ensure a JSON response is always sent on success
+    // Return the formatted response including the phone number
     res.status(200).json({
-        message: 'Cart item updated.',
-        items: updatedCart.items,
-        totalItems: totalItems,
+        message: 'Cart item removed.',
+        ...formatCartResponse(updatedCart)
     });
 });
 

@@ -12,6 +12,8 @@ import ShopPage from './pages/Shop';
 import CategoryPage from './pages/Category';
 import Profile from './components/Common/Profile';
 import CheckoutScreen from './components/Common/CheckoutScreen';
+import ContactUs from './pages/Footer/ContactUs';
+import AboutUs from './pages/Footer/AboutUs';
 //import PaymentInstructionsScreen from './pages/PaymentInstruction';
 
 const App = () => {
@@ -43,6 +45,8 @@ const App = () => {
             <Route path="/category/top-wear" element={<CategoryPage categoryName="Top Wear" />} />
             <Route path="/category/bottom-wear" element={<CategoryPage categoryName="Bottom Wear" />} />
             <Route path="/checkout" element={<CheckoutScreen />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/about" element={<AboutUs />} />
             {/* <Route 
             path="/order/:orderId/pay" 
             element={<PaymentInstructionsScreen />} 

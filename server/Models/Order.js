@@ -32,12 +32,12 @@ const orderSchema = new mongoose.Schema({
     shippingMethod: { type: String, required: true },
     
     paymentMethod: { type: String, required: true },
-    paymentResult: { // To store payment confirmation details (e.g., M-Pesa transaction ID)
+    paymentResult: { 
         id: { type: String },
         status: { type: String },
         update_time: { type: String },
     },
-     paymentContact: { 
+    paymentContact: { 
         type: String, 
         required: false,
     },
@@ -57,5 +57,10 @@ const orderSchema = new mongoose.Schema({
     timestamps: true,
 });
 
-const Order = mongoose.model('Order', orderSchema);
+// If model already exists (cached), delete it to force reload
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+
+const Order = mongoose.model("Order", orderSchema);
 module.exports = Order;
