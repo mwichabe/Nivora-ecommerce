@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
 // --- Constants ---
-const CART_API_URL = 'http://localhost:5000/api/cart';
+const CART_API_URL = 'https://one-man-server.onrender.com/api/cart';
 
 export const ProductModal = ({ product, onClose }) => {
     
@@ -63,8 +63,9 @@ export const ProductModal = ({ product, onClose }) => {
         if (!isAddButtonEnabled || isAdding) return;
 
         if (!isLoggedIn) {
-            setAddError("You must be logged in to add items.");
-            setTimeout(() => setAddError(null), 3000); 
+            // Updated error message to include instructions
+            setAddError("You must be logged in to add items. Please log in or sign up.");
+            setTimeout(() => setAddError(null), 4000); 
             return;
         }
 
@@ -98,7 +99,8 @@ export const ProductModal = ({ product, onClose }) => {
             });
 
             if (response.status === 201) {
-                setAddError(`Added: ${product.name} (${size})`); 
+                // Using emoji for success state
+                setAddError(`✅ Added: ${product.name} (${size})`); 
                 refreshCart();
                 // Close modal after successful addition
                 setTimeout(() => { setAddError(null); onClose(); }, 1500); 
@@ -121,7 +123,8 @@ export const ProductModal = ({ product, onClose }) => {
             onClick={onClose} 
         >
             <div 
-                className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8 max-h-[90vh] overflow-hidden flex flex-col md:flex-row transition-transform duration-300 scale-100"
+                // 🟢 FIX 1: Changed overflow-hidden to overflow-y-auto to allow scrolling of the entire modal content when needed
+                className="bg-white rounded-xl shadow-2xl max-w-6xl w-full my-8 max-h-[90vh] overflow-y-auto flex flex-col md:flex-row transition-transform duration-300 scale-100"
                 onClick={e => e.stopPropagation()} 
             >
                 
@@ -136,7 +139,7 @@ export const ProductModal = ({ product, onClose }) => {
                     </svg>
                 </button>
 
-                {/* Left Side: Image Gallery (Image Fix Applied) */}
+                {/* Left Side: Image Gallery */}
                 <div className="md:w-3/5 relative bg-gray-100 p-6 flex">
                     
                     {/* 1. Thumbnail Navigation */}
@@ -169,8 +172,11 @@ export const ProductModal = ({ product, onClose }) => {
                 </div>
 
                 {/* Right side details */}
-                <div className="md:w-2/5 p-6 flex flex-col justify-between">
-                    <div>
+                {/* 🟢 Added flex-col h-full to the details panel to ensure proper vertical structure on desktop */}
+                <div className="md:w-2/5 p-6 flex flex-col h-full"> 
+                    
+                    {/* 🟢 Scrollable Content Area */}
+                    <div className="flex-grow overflow-y-auto md:pr-4"> 
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h2>
                         
                         {/* Status Tags */}
@@ -231,12 +237,14 @@ export const ProductModal = ({ product, onClose }) => {
                         )}
 
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">Description</h3>
-                        <p className="text-gray-600 text-sm overflow-y-auto max-h-24 pb-2">
+                        {/* 🟢 Removed max-h-24 and relied on flex-grow/overflow-y-auto on the parent div */}
+                        <p className="text-gray-600 text-sm pb-2 whitespace-pre-wrap"> 
                             {product.description || "A wonderful addition to your wardrobe. Use the button below to quickly add it to your cart."}
                         </p>
                     </div>
 
-                    <div className="mt-6">
+                    {/* 🟢 Fixed Footer Area (Button) */}
+                    <div className="mt-6 pt-4 border-t border-gray-100 flex-shrink-0">
                         <button
                             onClick={handleAddToCart}
                             className="w-full bg-[#ea2e0e] text-white py-3 rounded-lg text-lg font-semibold uppercase tracking-wider transition duration-300 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -251,13 +259,6 @@ export const ProductModal = ({ product, onClose }) => {
                                         : 'Add to Cart'
                             }
                         </button>
-                        {/* <Link 
-                            to={`/product/${product._id}`} 
-                            className="block text-center mt-3 text-sm text-gray-600 hover:text-gray-900 transition font-medium"
-                            onClick={onClose} 
-                        >
-                            View Full Product Page Details
-                        </Link> */}
                     </div>
                 </div>
             </div>

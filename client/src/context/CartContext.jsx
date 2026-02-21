@@ -12,7 +12,7 @@ export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const CART_API_URL = "http://localhost:5000/api/cart";
+  const CART_API_URL = "https://one-man-server.onrender.com/api/cart";
 
   const getAuthHeaders = () => {
       const token = localStorage.getItem("token");

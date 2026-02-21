@@ -1,267 +1,497 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiCheckCircle, HiPhone, HiBanknotes, HiArrowLeft, HiXMark,  } from "react-icons/hi2";
-import { HiOutlineClipboardCopy } from "react-icons/hi";
+import { HiCheckCircle, HiCreditCard, HiArrowLeft, HiXMark, HiMapPin, HiTruck } from "react-icons/hi2";
 
-// ⚠️ CONSTANT TILL NUMBER (Placeholder)
-const MPESA_TILL_NUMBER = "1234567";
+const PRIMARY = '#ea2e0e';
 
-// Helper Component for consistency
-const Spinner = () => <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#ea2e0e] mx-auto"></div>;
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-// Helper Component for data rows
-const DetailRow = ({ label, value, isTotal = false }) => (
-    <div className={`flex justify-between py-2 ${isTotal ? 'border-t-2 border-gray-800 pt-3' : 'border-b border-gray-100'}`}>
-      <span className={`font-${isTotal ? 'bold' : 'medium'} text-${isTotal ? 'lg' : 'base'} text-gray-700`}>{label}</span>
-      <span className={`font-${isTotal ? 'extrabold' : 'semibold'} text-${isTotal ? 'xl' : 'lg'} text-${isTotal ? 'red-600' : 'gray-900'}`}>
-        Ksh {value.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-      </span>
-    </div>
-);
+  /* ── Review card ── */
+  .or-root { font-family: 'DM Sans', sans-serif; }
 
-// Helper Component for item details
-const ItemDetail = ({ title, value }) => (
-    <div className="flex justify-between text-sm py-1">
-        <span className="text-gray-500 font-medium">{title}:</span>
-        <span className="text-gray-700 font-semibold">{value}</span>
-    </div>
-);
+  .or-card {
+    background: #fff;
+    border: 1px solid #e8e4de;
+  }
+  .or-card-header {
+    padding: 18px 28px;
+    border-bottom: 1px solid #f0ede8;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .or-card-title {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase; color: #555;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .or-card-title svg { color: ${PRIMARY}; }
 
+  /* ── Two-column layout ── */
+  .or-body {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 2px;
+  }
+  @media (max-width: 768px) { .or-body { grid-template-columns: 1fr; } }
 
-export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCartPrice, loading, user, refreshCart }) => { // Added refreshCart prop
+  /* ── Left column sections ── */
+  .or-section {
+    background: #fff;
+    border: 1px solid #e8e4de;
+    padding: 22px 24px;
+    margin-bottom: 2px;
+  }
+  .or-section:last-child { margin-bottom: 0; }
+
+  .or-section-label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(0,0,0,0.25);
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .or-section-label::after { content: ''; flex: 1; height: 1px; background: #f0ede8; }
+
+  .or-detail-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline; gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f8f6f3;
+  }
+  .or-detail-row:last-child { border-bottom: none; }
+  .or-detail-key {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; color: #aaa;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .or-detail-val {
+    font-size: 13px; font-weight: 500; color: #333;
+    text-align: right;
+  }
+
+  /* ── Item list ── */
+  .or-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f6f3;
+  }
+  .or-item:first-child { padding-top: 0; }
+  .or-item:last-child  { border-bottom: none; padding-bottom: 0; }
+
+  .or-item-img {
+    width: 50px; height: 62px;
+    object-fit: cover; object-position: top;
+    background: #f0ede8; flex-shrink: 0; display: block;
+  }
+  .or-item-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px; font-weight: 600; color: #111; line-height: 1.25;
+    margin-bottom: 3px;
+  }
+  .or-item-meta { font-size: 11px; color: #aaa; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .or-item-price {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: #555;
+  }
+
+  /* ── Summary sidebar ── */
+  .or-summary {
+    background: #fff;
+    border: 1px solid #e8e4de;
+    padding: 24px;
+    height: fit-content;
+    position: sticky; top: 80px;
+  }
+  .or-summary-title {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase; color: #555;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f0ede8;
+  }
+  .or-summary-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline; padding: 8px 0;
+    border-bottom: 1px solid #f8f6f3;
+  }
+  .or-summary-row:last-of-type { border-bottom: none; }
+  .or-summary-label { font-size: 12px; color: #aaa; font-weight: 500; }
+  .or-summary-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; color: #333;
+  }
+  .or-summary-divider { height: 1px; background: #e8e4de; margin: 14px 0; }
+  .or-summary-total-label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #555;
+  }
+  .or-summary-total-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px; font-weight: 500; color: #111; letter-spacing: -0.02em;
+  }
+  .or-summary-note { font-size: 10px; color: #ccc; text-align: right; margin-top: 6px; }
+
+  /* ── Nav bar ── */
+  .or-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px;
+    border-top: 1px solid #f0ede8;
+    background: #faf9f7;
+    margin-top: 2px;
+    border: 1px solid #e8e4de;
+    border-top: none;
+  }
+  .or-back-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent; border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: #aaa; cursor: pointer; transition: color 0.15s; padding: 0;
+  }
+  .or-back-btn:hover { color: #111; }
+
+  .or-pay-btn {
+    display: flex; align-items: center; gap: 10px;
+    height: 50px; padding: 0 32px;
+    background: #111; border: none; color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; transition: background 0.18s;
+  }
+  .or-pay-btn:hover:not(:disabled) { background: ${PRIMARY}; }
+  .or-pay-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* ── Spinner ── */
+  @keyframes or-spin { to { transform: rotate(360deg); } }
+  .or-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: or-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* ── Payment Modal ── */
+  @keyframes or-modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .or-modal-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(3px);
+    animation: or-fade-in 0.2s ease;
+  }
+  @keyframes or-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .or-modal {
+    background: #fff;
+    border: 1px solid #e8e4de;
+    max-width: 480px; width: 100%;
+    animation: or-modal-in 0.25s ease both;
+    overflow: hidden;
+  }
+  .or-modal-accent { height: 3px; background: ${PRIMARY}; }
+  .or-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0ede8;
+  }
+  .or-modal-title {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase; color: #555;
+  }
+  .or-modal-close {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid #e8e4de;
+    color: #aaa; cursor: pointer; transition: all 0.15s;
+  }
+  .or-modal-close:hover { background: #111; color: #fff; border-color: #111; }
+
+  .or-modal-body { padding: 24px; }
+
+  /* Order summary in modal */
+  .or-modal-amount-block {
+    background: #faf9f7;
+    border: 1px solid #e8e4de;
+    padding: 20px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .or-modal-order-id { font-size: 11px; color: #aaa; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .or-modal-order-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px; font-weight: 500; color: #111;
+  }
+  .or-modal-total-label { font-size: 10px; color: #aaa; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; text-align: right; }
+  .or-modal-total-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px; font-weight: 500; color: #111; letter-spacing: -0.02em;
+  }
+
+  .or-modal-ref-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid #f0ede8; margin-bottom: 20px;
+  }
+  .or-modal-ref-label { font-size: 11px; color: #aaa; font-weight: 500; }
+  .or-modal-ref-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: #333;
+  }
+
+  .or-modal-info {
+    font-size: 12.5px; color: #777; line-height: 1.65; margin-bottom: 20px;
+  }
+
+  .or-modal-proceed-btn {
+    width: 100%; height: 50px;
+    background: #111; border: none; color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; transition: background 0.18s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .or-modal-proceed-btn:hover:not(:disabled) { background: ${PRIMARY}; }
+  .or-modal-proceed-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  .or-modal-cancel-btn {
+    width: 100%; height: 38px;
+    background: transparent; border: 1px solid #e8e4de; color: #aaa;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .or-modal-cancel-btn:hover { border-color: #111; color: #111; }
+
+  /* Secure badge */
+  .or-secure-note {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 10px;
+    border-top: 1px solid #f0ede8;
+    font-size: 10px; color: #ccc;
+    letter-spacing: 0.06em;
+  }
+  .or-secure-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+`;
+
+const fmt = (n) => n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+const SHIP_LABEL = { standard: 'Standard (3–5 days)', express: 'Express (1–2 days)', free: 'Local Delivery' };
+const PAY_LABEL  = { mpesa: 'M-Pesa', card: 'Credit / Debit Card', bank: 'Bank Transfer' };
+
+export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCartPrice, loading, refreshCart }) => {
   const navigate = useNavigate();
-  
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [orderId, setOrderId] = useState(null);
-  const [paymentContact, setPaymentContact] = useState(user?.phone || '');
-  const [contactSubmissionLoading, setContactSubmissionLoading] = useState(false);
-  const [contactSubmissionStatus, setContactSubmissionStatus] = useState(null); 
-  const [copied, setCopied] = useState(false);
 
-  // --- Calculations ---
-  // Ensure these calculations use the original totalCartPrice, which is correctly passed from CheckoutScreen
+  const [showModal, setShowModal]           = useState(false);
+  const [orderId, setOrderId]               = useState(null);
+  const [paystackAuthUrl, setPaystackAuthUrl] = useState(null);
+  const [paystackReference, setPaystackReference] = useState(null);
+  const [paystackLoading, setPaystackLoading] = useState(false);
+
   const shippingCost = formData.shippingCost || 0;
-  const subtotal = totalCartPrice; // This is correct, it's the total from the cart before it was cleared
-  const taxRate = 0.16;
-  const tax = subtotal * taxRate;
-  const orderTotal = subtotal + shippingCost + tax;
+  const subtotal     = totalCartPrice;
+  const taxRate      = 0.16;
+  const tax          = subtotal * taxRate;
+  const orderTotal   = subtotal + shippingCost + tax;
 
-  // --- Handlers ---
-  const handlePlaceOrderClick = async () => {
-      const data = await placeOrder(orderTotal, subtotal, tax);
-      
-      if (data && data.order && data.order._id) {
-          setOrderId(data.order._id);
-          setShowPaymentModal(true);
-      }
-  };
-
-  const handleSubmitPaymentContact = async (e) => {
-    e.preventDefault();
-    setContactSubmissionLoading(true);
-    setContactSubmissionStatus(null);
-    
+  const initializePayment = async (id) => {
+    setPaystackLoading(true);
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/api/orders/${orderId}/payment-contact`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ paymentContact }), 
-        });
-
-        if (response.ok) {
-            setContactSubmissionStatus('success');
-            // No navigation or cart clear here. Just update status.
-        } else {
-            const data = await response.json();
-            setContactSubmissionStatus('error');
-            console.error('API Error:', data.message);
-        }
-    } catch (error) {
-        console.error('Network Error:', error);
-        setContactSubmissionStatus('error');
+      const token = localStorage.getItem('token');
+      const res = await fetch(`https://one-man-server.onrender.com/api/orders/${id}/paystack-init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ callback_url: window.location.origin + '/app/paystack-callback' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.authorization_url) {
+        setPaystackAuthUrl(data.authorization_url);
+        setPaystackReference(data.reference);
+        setShowModal(true);
+      } else {
+        alert(`Payment initialization failed: ${data.message || 'Unknown error.'}`);
+      }
+    } catch {
+      alert('Failed to connect to payment gateway. Please try again.');
     } finally {
-        setContactSubmissionLoading(false);
+      setPaystackLoading(false);
     }
   };
-  
-  const handleCopy = () => {
-      navigator.clipboard.writeText(MPESA_TILL_NUMBER);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+  const handlePlaceOrderAndPay = async () => {
+    setPaystackLoading(true);
+    const data = await placeOrder(orderTotal, subtotal, tax);
+    if (data?.order?._id) {
+      const newId = data.order._id;
+      setOrderId(newId);
+      await initializePayment(newId);
+    } else {
+      setPaystackLoading(false);
+    }
   };
 
-  // Function to navigate and clear cart
-  const handleViewOrderStatus = () => {
-      refreshCart(); // Clear the cart when the user explicitly views their orders
-      //navigate('/orders');
+  const handleProceedToPaystack = () => {
+    refreshCart();
+    window.location.href = paystackAuthUrl;
   };
 
   const handleModalDismiss = () => {
-      refreshCart();
-      setShowPaymentModal(false);
-      navigate('/app');
+    refreshCart();
+    setShowModal(false);
+    navigate('/app');
   };
 
-  // --- Payment Modal Component (Local to OrderReview) ---
-  const PaymentModal = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-70 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full transform transition-all p-6 space-y-6">
-        
-        {/* Modal Header */}
-        <div className="flex justify-between items-center border-b pb-3">
-          <h4 className="text-2xl font-bold text-gray-800 flex items-center">
-            <HiBanknotes className="w-7 h-7 mr-2 text-blue-600" />
-            Complete M-Pesa Payment
-          </h4>
-          <button onClick={handleModalDismiss} className="text-gray-400 hover:text-gray-600">
-            <HiXMark className="w-6 h-6" />
-          </button>
-        </div>
+  const busy = loading || paystackLoading;
 
-        {/* Order Summary & Status */}
-        <div className="text-center bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-            <p className="text-lg text-gray-800">Order ID: <strong className="text-[#ea2e0e]">{orderId.slice(-6).toUpperCase()}</strong></p>
-            {/* The total amount displayed here should now be correct because refreshCart is moved */}
-            <p className="text-3xl font-extrabold text-red-600 mt-1">Ksh {orderTotal.toLocaleString()}</p>
-            <p className="text-sm text-yellow-800 mt-2">Please complete this payment via M-Pesa to finalize your order.</p>
-        </div>
-
-        {/* 1. M-Pesa Instructions */}
-        <div className="space-y-4">
-            <h5 className="text-xl font-semibold text-gray-700">Payment Steps:</h5>
-            <ol className="list-decimal list-inside space-y-3 text-gray-700 ml-4">
-                <li>Go to Lipa Na M-Pesa on your M-Pesa menu.</li>
-                <li>Select Buy Goods and Services.</li>
-                <li>Enter the Till Number:
-                    <div className="flex items-center justify-between p-3 mt-2 bg-gray-100 rounded-lg border border-gray-300 shadow-sm">
-                        <span className="text-2xl font-extrabold tracking-widest text-[#ea2e0e]">
-                            {MPESA_TILL_NUMBER}
-                        </span>
-                        <button 
-                            onClick={handleCopy} 
-                            className="flex items-center px-3 py-1 bg-white border border-[#ea2e0e] text-[#ea2e0e] rounded-lg hover:bg-gray-50 transition duration-150"
-                        >
-                            <HiOutlineClipboardCopy className="w-5 h-5 mr-1" />
-                            {copied ? 'Copied!' : 'Copy Till'}
-                        </button>
-                    </div>
-                </li>
-                <li>Enter the exact amount: Ksh {orderTotal.toLocaleString()}.</li>
-            </ol>
-        </div>
-        
-        {/* 2. Phone Number Confirmation
-        <div className="border-t pt-4">
-            <h5 className="text-xl font-semibold text-gray-700 mb-3">Confirmation Contact:</h5>
-            <p className="text-sm text-gray-600 mb-4">We'll use this number to link your payment and confirm the order status.</p>
-
-            <form onSubmit={handleSubmitPaymentContact} className="flex flex-col space-y-4">
-                <div className="relative">
-                    <HiPhone className="w-5 h-5 absolute top-3 left-3 text-gray-400" />
-                    <input
-                        type="tel"
-                        pattern="[0-9]{10,12}" 
-                        value={paymentContact}
-                        onChange={(e) => setPaymentContact(e.target.value)}
-                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="e.g., 07XXXXXXXX"
-                        required
-                        disabled={contactSubmissionLoading || contactSubmissionStatus === 'success'}
-                    />
-                </div>
-                
-                <button 
-                    type="submit" 
-                    disabled={contactSubmissionLoading || paymentContact.length < 10 || contactSubmissionStatus === 'success'}
-                    className={`w-full py-3 text-white font-semibold rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center ${
-                        contactSubmissionStatus === 'success' 
-                            ? 'bg-green-700' 
-                            : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                >
-                    {contactSubmissionLoading ? (
-                        <><Spinner />Submitting...</>
-                    ) : contactSubmissionStatus === 'success' ? (
-                        <><HiCheckCircle className='w-5 h-5 mr-2'/> Contact Saved!</>
-                    ) : (
-                        'CONFIRM CONTACT FOR RECONCILIATION'
-                    )}
-                </button>
-            </form>
-        </div> */}
-        
-        {/* Footer Button - Now clears cart before navigating */}
-        {/* <button 
-            onClick={handleViewOrderStatus} // Use the new handler here
-            disabled={!orderId}
-            className="w-full py-3 bg-[#ea2e0e] text-white font-semibold rounded-lg hover:bg-[#c4250c] transition duration-200"
-        >
-            View Order Status
-        </button> */}
-      </div>
-    </div>
-  );
-
-  // --- MAIN RENDER FUNCTION ---
   return (
-    <div className="relative">
-      {/* 1. Main Order Review Content */}
-      <div className="space-y-8 bg-white p-6 rounded-lg shadow-lg">
-        <h3 className="text-xl font-bold text-gray-800 border-b pb-3 mb-4 flex items-center"><HiCheckCircle className="w-6 h-6 mr-2 text-[#ea2e0e]"/>Review & Place Order</h3>
+    <div className="or-root">
+      <style>{STYLES}</style>
 
-        {/* Order Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            
-            {/* Shipping and Payment Info */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <p className="text-lg font-semibold text-gray-800 mb-2">Delivery & Payment</p>
-              <ItemDetail title="Recipient" value={formData.name} />
-              <ItemDetail title="Shipping To" value={`${formData.address}, ${formData.city}`} />
-              <ItemDetail title="Shipping Method" value={formData.shippingMethod === 'standard' ? 'Standard (3-5 Days)' : 'Express (1-2 Days)'} />
-              <ItemDetail title="Payment Method" value={formData.paymentMethod.toUpperCase()} />
+      {/* ── Card header ── */}
+      <div className="or-card">
+        <div className="or-card-header">
+          <span className="or-card-title"><HiCheckCircle size={14} /> Review &amp; Place Order</span>
+        </div>
+
+        {/* ── Body grid ── */}
+        <div className="or-body" style={{ padding: '2px' }}>
+
+          {/* Left: details + items */}
+          <div>
+            {/* Delivery info */}
+            <div className="or-section">
+              <div className="or-section-label"><HiMapPin size={11} /> Delivery &amp; Payment</div>
+              {[
+                { key: 'Recipient',       val: formData.name },
+                { key: 'Shipping To',     val: `${formData.address}, ${formData.city}` },
+                { key: 'Shipping Method', val: SHIP_LABEL[formData.shippingMethod] || formData.shippingMethod },
+                { key: 'Payment Method', val: PAY_LABEL[formData.paymentMethod]  || formData.paymentMethod },
+              ].map(({ key, val }) => (
+                <div key={key} className="or-detail-row">
+                  <span className="or-detail-key">{key}</span>
+                  <span className="or-detail-val">{val}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Item List */}
-            <div className="border border-gray-200 rounded-lg p-4">
-                <p className="text-lg font-semibold text-gray-800 mb-4">Items ({cartItems.length})</p>
-                {cartItems.map((item) => (
-                    <div key={item._id} className="flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-b-0">
-                        <span className="text-gray-700 line-clamp-1 w-2/3">{item.name} ({item.size})</span>
-                        <span className="font-semibold">Ksh {item.price.toLocaleString()} x {item.quantity}</span>
+            {/* Items */}
+            <div className="or-section">
+              <div className="or-section-label"><HiTruck size={11} /> Items ({cartItems.length})</div>
+              {cartItems.map(item => (
+                <div key={item._id} className="or-item">
+                  <img
+                    className="or-item-img"
+                    src={item.imageUrls?.[0] || item.product?.imageUrls?.[0] || 'https://placehold.co/50x62/f2f0ed/999?text=·'}
+                    alt={item.name}
+                    onError={e => { e.target.src = 'https://placehold.co/50x62/f2f0ed/999?text=·'; }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="or-item-name">{item.name}</div>
+                    <div className="or-item-meta">Size: {item.size}  ·  Qty: {item.quantity}</div>
+                    <div className="or-item-price">
+                      Ksh {fmt(item.price)} × {item.quantity} = Ksh {fmt(item.price * item.quantity)}
                     </div>
-                ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right Column: Order Summary */}
-          <div className="md:col-span-1 border border-gray-200 rounded-lg p-6 bg-white shadow-md h-fit">
-            <p className="text-xl font-bold text-gray-800 mb-4">Order Summary</p>
-            <DetailRow label="Subtotal" value={subtotal} />
-            <DetailRow label={`Tax (VAT ${taxRate*100}%)`} value={tax} />
-            <DetailRow label="Shipping" value={shippingCost} />
-            <DetailRow label="Order Total" value={orderTotal} isTotal={true} />
-            <p className="text-xs text-gray-500 mt-2 text-right">All prices in Kenya Shillings (Ksh)</p>
+          {/* Right: summary */}
+          <div style={{ padding: '0 2px 2px 0' }}>
+            <div className="or-summary">
+              <div className="or-summary-title">Order Summary</div>
+              {[
+                { label: 'Subtotal',          val: fmt(subtotal) },
+                { label: `VAT (${taxRate * 100}%)`, val: fmt(tax) },
+                { label: 'Shipping',          val: shippingCost === 0 ? 'Free' : `Ksh ${fmt(shippingCost)}` },
+              ].map(({ label, val }) => (
+                <div key={label} className="or-summary-row">
+                  <span className="or-summary-label">{label}</span>
+                  <span className="or-summary-val">{val.startsWith('Ksh') || val === 'Free' ? val : `Ksh ${val}`}</span>
+                </div>
+              ))}
+              <div className="or-summary-divider" />
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span className="or-summary-total-label">Total</span>
+                <span className="or-summary-total-val">Ksh {fmt(orderTotal)}</span>
+              </div>
+              <p className="or-summary-note">All prices in Kenyan Shillings</p>
+            </div>
           </div>
         </div>
-      
-        <div className="flex justify-between pt-4">
-          <button onClick={onPrev} className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center transition duration-150">
-            <HiArrowLeft className="w-5 h-5 mr-1" /> Edit Details
+
+        {/* ── Nav ── */}
+        <div className="or-nav">
+          <button className="or-back-btn" onClick={onPrev} disabled={busy}>
+            <HiArrowLeft size={13} /> Edit Details
           </button>
-          <button 
-            onClick={handlePlaceOrderClick} 
-            disabled={loading}
-            className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {loading ? <Spinner /> : 'PLACE ORDER & PAY'}
+          <button className="or-pay-btn" onClick={handlePlaceOrderAndPay} disabled={busy}>
+            {busy ? <><div className="or-spinner" /> Processing…</> : <>Place Order &amp; Pay <HiCreditCard size={14} /></>}
           </button>
         </div>
       </div>
-      
-      {/* 2. Payment Modal Overlay */}
-      {showPaymentModal && <PaymentModal />}
+
+      {/* ── Payment Modal ── */}
+      {showModal && (
+        <div className="or-modal-overlay" onClick={e => e.target === e.currentTarget && handleModalDismiss()}>
+          <div className="or-modal">
+            <div className="or-modal-accent" />
+            <div className="or-modal-header">
+              <span className="or-modal-title">Secure Payment</span>
+              <button className="or-modal-close" onClick={handleModalDismiss} aria-label="Close">
+                <HiXMark size={16} />
+              </button>
+            </div>
+            <div className="or-modal-body">
+
+              {/* Amount block */}
+              <div className="or-modal-amount-block">
+                <div>
+                  <div className="or-modal-order-id">Order ID</div>
+                  <div className="or-modal-order-num">#{orderId?.slice(-6).toUpperCase()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="or-modal-total-label">Total Due</div>
+                  <div className="or-modal-total-val">Ksh {fmt(orderTotal)}</div>
+                </div>
+              </div>
+
+              {/* Reference */}
+              {paystackReference && (
+                <div className="or-modal-ref-row">
+                  <span className="or-modal-ref-label">Paystack Reference</span>
+                  <span className="or-modal-ref-val">{paystackReference}</span>
+                </div>
+              )}
+
+              <p className="or-modal-info">
+                You'll be redirected to Paystack's secure payment page where you can pay via Card, Bank Transfer, or Mobile Money (M-Pesa).
+              </p>
+
+              <button className="or-modal-proceed-btn" onClick={handleProceedToPaystack} disabled={!paystackAuthUrl}>
+                <HiCreditCard size={15} /> Continue to Payment
+              </button>
+              <button className="or-modal-cancel-btn" onClick={handleModalDismiss}>
+                Cancel &amp; Return Home
+              </button>
+            </div>
+
+            <div className="or-secure-note">
+              <div className="or-secure-dot" />
+              Secured by Paystack · 256-bit SSL encryption
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

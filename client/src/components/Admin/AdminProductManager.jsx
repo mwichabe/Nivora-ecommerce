@@ -1,678 +1,814 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-    //WrenchScrewdriver as IconWrenchScrewdriver, 
-    //ArrowLeftOnRectangle as IconArrowLeftOnRectangle, 
-    Plus as IconPlus, 
-    //Cube as IconCube, 
-    Sparkles as IconSparkles, 
-    Check as IconCheck, 
-    X as IconXMark, 
-    Pencil as IconPencil, 
-    Trash as IconTrash,
-    Images as IconImages,
-    Maximize2 as IconMaximize2
+import {
+  Plus as IconPlus,
+  Sparkles as IconSparkles,
+  Check as IconCheck,
+  X as IconXMark,
+  Pencil as IconPencil,
+  Trash as IconTrash,
+  Images as IconImages,
+  Maximize2 as IconMaximize2,
+  LogOut,
+  Package,
+  AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
-// --- Configuration ---
-const API_BASE_URL = 'http://localhost:5000/api/admin/products';
 
-// --- Inline SVG Icons ---
-// const IconPlus = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
-// const IconSparkles = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9.35 18.785l1.625.541c.216.072.433.072.649 0l1.625-.541-1.613-2.887c-.126-.226-.14-.492-.036-.725.103-.233.327-.374.577-.374h.963a.875.875 0 0 0 .825-.54l-.875-1.574-1.574-.875a.875.875 0 0 0-.54-.825v-.963c0-.25.141-.474.374-.577.233-.104.499-.09.725-.036l2.887 1.613.541-1.625c.072-.216.072-.433 0-.649l-.541-1.625-1.613-2.887a.875.875 0 0 0-.725-.036.875.875 0 0 0-.577.374h-.963a.875.875 0 0 0-.825.54l-.875 1.574-1.574.875a.875.875 0 0 0-.54.825v.963c0 .25-.141.474-.374.577.233.104.499-.09.725-.036l2.887 1.613.541-1.625c.072-.216.072-.433 0-.649l-.541-1.625L.813 10.487c-.126-.226-.14-.492-.036-.725.103-.233.327-.374.577-.374h.963a.875.875 0 0 1 .825.54l.875 1.574 1.574.875a.875.875 0 0 1 .54.825v.963c0 .25.141.474.374.577.233.104.499-.09.725-.036l1.625-.908a.875.875 0 0 1 .825-.54h.963c.25 0 .474.141.577.374.104.233.09.499-.036.725L14.187 15.904Z" /></svg>;
-const IconCube = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>;
-const IconCurrencyDollar = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-2.25 0h4.5m-1.5-6h1.5m-3 0V6a2.25 2.25 0 0 1 2.25-2.25h1.5m-3 0a2.25 2.25 0 0 1 2.25 2.25v1.5m0 0a2.25 2.25 0 0 0 2.25 2.25H16.5m-2.25 4.5h1.5m-4.5 0h4.5m-1.5-6h1.5m-3 0V6a2.25 2.25 0 0 1 2.25-2.25h1.5m-3 0a2.25 2.25 0 0 1 2.25 2.25v1.5m0 0a2.25 2.25 0 0 0 2.25 2.25H16.5m-2.25 4.5h1.5m-4.5 0h4.5" /></svg>;
-const IconWrenchScrewdriver = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 13.5V6.75a6.75 6.75 0 0 1 6.75-6.75h1.5a6.75 6.75 0 0 1 6.75 6.75v6.75m-7.5-6h3m-3 6h3m-3 6h3m-6 0h.008v.008H6v-.008Zm0-3h.008v.008H6v-.008Zm0-3h.008v.008H6v-.008Zm0-3h.008v.008H6v-.008Zm-3 6h.008v.008H3v-.008Zm0-3h.008v.008H3v-.008Zm0-3h.008v.008H3v-.008Zm0-3h.008v.008H3v-.008Zm9 12h.008v.008H12v-.008Zm0-3h.008v.008H12v-.008Zm0-3h.008v.008H12v-.008Zm0-3h.008v.008H12v-.008Zm3 6h.008v.008H15v-.008Zm0-3h.008v.008H15v-.008Zm0-3h.008v.008H15v-.008Zm0-3h.008v.008H15v-.008Zm3 6h.008v.008H18v-.008Zm0-3h.008v.008H18v-.008Zm0-3h.008v.008H18v-.008Zm0-3h.008v.008H18v-.008Zm-15 12h.008v.008H3v-.008Z" /></svg>;
-// const IconTrash = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.262 9m10.92-7.24a.875.875 0 0 0-.54-.825h-12a.875.875 0 0 0-.825.54L.222 20.336a.875.875 0 0 0-.725.036.875.875 0 0 0-.577.374H.222a.875.875 0 0 1-.825-.54l-.875-1.574-1.574-.875a.875.875 0 0 1-.54-.825V18.15c0-.25.141-.474.374-.577.233-.104.499-.09.725.036l2.887 1.613.541-1.625c.072-.216.072-.433 0-.649l-.541-1.625L.813 10.487c-.126-.226-.14-.492-.036-.725.103-.233.327-.374.577-.374h.963a.875.875 0 0 1 .825.54l.875 1.574 1.574.875a.875.875 0 0 1 .54.825v.963c0 .25.141.474.374.577.233.104.499-.09.725-.036l1.625-.908a.875.875 0 0 1 .825-.54h.963c.25 0 .474.141.577.374.104.233.09.499-.036.725L14.187 15.904Z" /></svg>;
-// const IconPencil = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.498 1.498 1.498 1.498-12.636 12.636-1.498-1.498-1.498-1.498L16.862 4.487zm0 0l-12.636 12.636m12.636-12.636L10.5 8.25" /></svg>;
-// const IconCheck = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-12" /></svg>;
-// const IconXMark = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
-const IconArrowLeftOnRectangle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>;
+const PRIMARY = '#ea2e0e';
+const API_BASE_URL = 'https://one-man-server.onrender.com/api/admin/products';
+const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const CATEGORIES = ['Men', 'Women', 'Top Wear', 'Bottom Wear', 'Accessories'];
 
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-// --- API Client Functions (Now real fetch calls) ---
+  *, *::before, *::after { box-sizing: border-box; }
 
-/**
- * Common fetch utility to handle JSON, credentials, and error responses.
- * @param {string} url - The API endpoint URL.
- * @param {object} options - Fetch options.
- * @returns {Promise<object>} The parsed JSON response data.
- */
+  .adm-root {
+    min-height: 100vh;
+    background: #0f0f0f;
+    font-family: 'DM Sans', sans-serif;
+    color: #e8e4de;
+  }
+
+  /* ── Top bar ── */
+  .adm-topbar {
+    height: 56px;
+    background: #161616;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    position: sticky; top: 0; z-index: 30;
+  }
+  .adm-topbar-left { display: flex; align-items: center; gap: 12px; }
+  .adm-wordmark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 0.1em; color: #fff;
+  }
+  .adm-badge {
+    padding: 2px 8px;
+    background: ${PRIMARY};
+    font-size: 8px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; color: #fff;
+  }
+  .adm-logout-btn {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.08em; color: rgba(255,255,255,0.5);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .adm-logout-btn:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+
+  /* ── Layout ── */
+  .adm-body { max-width: 1400px; margin: 0 auto; padding: 32px 32px 64px; }
+
+  /* ── Stats row ── */
+  .adm-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px; margin-bottom: 32px;
+  }
+  .adm-stat {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 24px;
+  }
+  .adm-stat-label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(255,255,255,0.3); margin-bottom: 8px;
+  }
+  .adm-stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px; font-weight: 500; color: #fff; line-height: 1;
+  }
+  .adm-stat-sub { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+
+  /* ── Section card ── */
+  .adm-card {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 2px;
+  }
+  .adm-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .adm-card-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .adm-card-title svg { color: rgba(255,255,255,0.2); }
+
+  /* ── Form ── */
+  .adm-form-grid {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 800px) { .adm-form-grid { grid-template-columns: 1fr; } }
+  .adm-full { grid-column: 1 / -1; }
+
+  .adm-label {
+    display: block;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.3); margin-bottom: 7px;
+  }
+  .adm-input, .adm-select, .adm-textarea {
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    border-radius: 0;
+    -webkit-appearance: none;
+  }
+  .adm-input  { height: 42px; padding: 0 12px; }
+  .adm-select { height: 42px; padding: 0 12px; cursor: pointer; }
+  .adm-textarea { padding: 10px 12px; resize: none; line-height: 1.6; }
+  .adm-input:focus, .adm-select:focus, .adm-textarea:focus {
+    border-color: rgba(255,255,255,0.3);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .adm-input::placeholder, .adm-textarea::placeholder { color: rgba(255,255,255,0.18); }
+  option { background: #1a1a1a; }
+
+  /* Size chips */
+  .adm-sizes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .adm-size-chip {
+    display: flex; align-items: center; gap: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer; transition: all 0.13s; overflow: hidden;
+  }
+  .adm-size-chip input[type="checkbox"] { display: none; }
+  .adm-size-chip label {
+    display: block;
+    padding: 6px 14px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.35); cursor: pointer; transition: all 0.13s;
+    user-select: none;
+  }
+  .adm-size-chip.checked { border-color: ${PRIMARY}; background: rgba(234,46,14,0.1); }
+  .adm-size-chip.checked label { color: ${PRIMARY}; }
+
+  /* Publish button */
+  .adm-publish-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 44px; padding: 0 28px;
+    background: ${PRIMARY}; border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase; color: #fff;
+    cursor: pointer; transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .adm-publish-btn:hover:not(:disabled) { opacity: 0.88; }
+  .adm-publish-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  /* ── Error banner ── */
+  .adm-error {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 18px; margin-bottom: 20px;
+    background: rgba(234,46,14,0.08);
+    border: 1px solid rgba(234,46,14,0.25);
+    color: #f87171; font-size: 13px;
+  }
+  .adm-error svg { flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Table ── */
+  .adm-table-wrap { overflow-x: auto; }
+  .adm-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  .adm-table th {
+    padding: 11px 16px;
+    text-align: left;
+    font-size: 8.5px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    white-space: nowrap;
+    background: #0f0f0f;
+  }
+  .adm-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+    color: rgba(255,255,255,0.7);
+  }
+  .adm-table tr:last-child td { border-bottom: none; }
+  .adm-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .adm-table tr.editing td { background: rgba(234,46,14,0.04); }
+
+  /* Inline edit inputs */
+  .adm-inline-input, .adm-inline-select, .adm-inline-textarea {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; outline: none;
+    transition: border-color 0.15s;
+    border-radius: 0;
+  }
+  .adm-inline-input  { height: 34px; padding: 0 8px; width: 100%; }
+  .adm-inline-select { height: 34px; padding: 0 8px; cursor: pointer; }
+  .adm-inline-textarea { padding: 6px 8px; resize: none; width: 100%; }
+  .adm-inline-input:focus, .adm-inline-select:focus, .adm-inline-textarea:focus {
+    border-color: rgba(255,255,255,0.25);
+  }
+
+  /* Product thumb */
+  .adm-thumb {
+    width: 44px; height: 54px;
+    object-fit: cover; object-position: top;
+    background: #222; flex-shrink: 0; display: block;
+  }
+
+  /* Category pill */
+  .adm-cat-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* Stock badge */
+  .adm-stock { font-family: 'DM Mono', monospace; font-size: 13px; }
+  .adm-stock.low { color: ${PRIMARY}; }
+  .adm-stock.ok  { color: rgba(255,255,255,0.6); }
+
+  /* Size tags */
+  .adm-size-tag {
+    display: inline-block; padding: 2px 7px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.35);
+  }
+
+  /* Action buttons */
+  .adm-action-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent;
+    color: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.13s;
+  }
+  .adm-action-btn.edit:hover  { color: #fff; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
+  .adm-action-btn.delete:hover { color: ${PRIMARY}; border-color: rgba(234,46,14,0.3); background: rgba(234,46,14,0.06); }
+  .adm-action-btn.save:hover   { color: #4ade80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06); }
+  .adm-action-btn.cancel:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.15); }
+  .adm-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Empty state ── */
+  .adm-empty {
+    padding: 64px 24px; text-align: center;
+  }
+  .adm-empty-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.1); margin-bottom: 8px;
+  }
+  .adm-empty-sub { font-size: 13px; color: rgba(255,255,255,0.2); }
+
+  /* ── Loading spinner ── */
+  @keyframes adm-spin { to { transform: rotate(360deg); } }
+  .adm-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: adm-spin 0.7s linear infinite;
+    display: inline-block; vertical-align: middle;
+  }
+
+  /* Loading screen */
+  .adm-loading {
+    min-height: 100vh; background: #0f0f0f;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  }
+  .adm-loading-ring {
+    width: 32px; height: 32px;
+    border: 2px solid rgba(255,255,255,0.06); border-top-color: ${PRIMARY};
+    border-radius: 50%; animation: adm-spin 0.8s linear infinite;
+  }
+  .adm-loading-text { font-size: 12px; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; }
+
+  /* Confirm modal */
+  .adm-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .adm-modal {
+    background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1);
+    padding: 28px 28px 24px; max-width: 380px; width: 100%;
+  }
+  .adm-modal h3 {
+    font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 8px;
+  }
+  .adm-modal p { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; margin-bottom: 24px; }
+  .adm-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .adm-modal-cancel {
+    padding: 8px 16px; border: 1px solid rgba(255,255,255,0.12);
+    background: transparent; color: rgba(255,255,255,0.4);
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+  }
+  .adm-modal-cancel:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+  .adm-modal-confirm {
+    padding: 8px 16px; border: none; background: ${PRIMARY};
+    color: #fff; font-family: 'DM Sans', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .adm-modal-confirm:hover { opacity: 0.85; }
+
+  @media (max-width: 640px) {
+    .adm-body { padding: 20px 16px 48px; }
+    .adm-topbar { padding: 0 16px; }
+    .adm-stats { grid-template-columns: 1fr; }
+  }
+`;
+
+/* ── API ── */
 const apiFetch = async (url, options = {}) => {
-    // 1. Get the token from localStorage (as shown in your screenshot)
-    const token = localStorage.getItem('token'); 
-    
-    let headers = {
-        'Content-Type': 'application/json',
-        // Merge with any custom headers passed in options
-        ...(options.headers || {}) 
-    };
-
-    // 2. If a token exists, add the Authorization header
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const defaultOptions = {
-        headers: headers,
-        // IMPORTANT: Must include credentials to send the JWT cookie (http-only)
-        credentials: 'include', 
-        ...options
-    };
-    
-    // Ensure body isn't duplicated if options already specified it
-    if (options.body) {
-        defaultOptions.body = options.body;
-    }
-
-    const response = await fetch(url, defaultOptions);
-    
-    // Check for network or server errors
-    if (!response.ok) {
-        // Attempt to parse JSON error body for detailed message
-        let errorBody = await response.json().catch(() => ({ message: 'Unknown error occurred on the server.' }));
-        // Prioritize the message field from the server response
-        throw new Error(errorBody.message || `API Error: ${response.statusText} (${response.status})`);
-    }
-
-    // Return JSON data (handles empty response for DELETE)
-    const text = await response.text();
-    return text ? JSON.parse(text) : {};
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+  const res = await fetch(url, { credentials: 'include', ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: `Error ${res.status}` }));
+    throw new Error(err.message || `API Error: ${res.status}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 };
+const fetchProducts  = ()         => apiFetch(API_BASE_URL, { method: 'GET' });
+const addProduct     = (data)     => apiFetch(API_BASE_URL, { method: 'POST', body: JSON.stringify(data) });
+const updateProduct  = (id, data) => apiFetch(`${API_BASE_URL}/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+const deleteProduct  = (id)       => apiFetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
 
-// GET /api/admin/products
-const fetchProducts = () => apiFetch(API_BASE_URL, { method: 'GET' });
+/* ── Confirm Modal ── */
+const ConfirmModal = ({ msg, onConfirm, onCancel }) => (
+  <div className="adm-modal-overlay">
+    <div className="adm-modal">
+      <h3>Confirm Deletion</h3>
+      <p>{msg}</p>
+      <div className="adm-modal-actions">
+        <button className="adm-modal-cancel" onClick={onCancel}>Cancel</button>
+        <button className="adm-modal-confirm" onClick={onConfirm}>Delete</button>
+      </div>
+    </div>
+  </div>
+);
 
-// POST /api/admin/products
-const addProduct = (productData) => apiFetch(API_BASE_URL, { 
-    method: 'POST', 
-    body: JSON.stringify(productData) 
-});
-
-// PUT /api/admin/products/:id
-const updateProduct = (id, updatedData) => apiFetch(`${API_BASE_URL}/${id}`, { 
-    method: 'PUT', 
-    body: JSON.stringify(updatedData) 
-});
-
-// DELETE /api/admin/products/:id
-const deleteProduct = (id) => apiFetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
-
-
-// ----------------------------------------------------------------------
-
-const AdminProductManager = () => {
-    // Authentication is assumed successful by the backend middleware for this UI to load
-    const isAuthenticated = true; 
-
-    const [products, setProducts] = useState([]);
-    const [dataLoading, setDataLoading] = useState(false);
-    const [isDataReady, setIsDataReady] = useState(false);
-    const [error, setError] = useState(null);
-    const [refetchTrigger, setRefetchTrigger] = useState(0); 
-    
-    // State for Add Product Form
-    const [newProduct, setNewProduct] = useState({
-        name: '', price: '', description: '', category: 'Men', imageUrls: ['', '', ''], stock: '10',sizes: [],
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
-    // State for Editing
-    const [editingId, setEditingId] = useState(null);
-    const [editData, setEditData] = useState({});
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    // --- HANDLER FUNCTIONS ---
-
-    /**
-     * Handles changes for the Add New Product form inputs.
-     */
-    const handleInputChange = (e) => {
-        const { name, value, checked } = e.target;
-         // 1. Handle Size Checkboxes
-        if (name === 'sizes') {
-            const size = value;
-            setNewProduct(prev => {
-                const currentSizes = prev.sizes;
-                if (checked) {
-                    // Add size if checked
-                    return { ...prev, sizes: [...currentSizes, size].sort((a, b) => AVAILABLE_SIZES.indexOf(a) - AVAILABLE_SIZES.indexOf(b)) };
-                } else {
-                    // Remove size if unchecked
-                    return { ...prev, sizes: currentSizes.filter(s => s !== size) };
-                }
-            });
-        // 2. Handle Multiple Image URL Inputs (using indices 1, 2, 3)
-        } else if (name.startsWith('imageUrl')) {
-            const index = parseInt(name.slice(-1), 10);
-            if (index >= 1 && index <= 3) {
-                setNewProduct(prev => {
-                    const newUrls = [...prev.imageUrls];
-                    newUrls[index - 1] = value; // Update the specific index (0, 1, or 2)
-                    return { ...prev, imageUrls: newUrls };
-                });
-            }
-
-            } else {
-            setNewProduct(prev => ({ ...prev, [name]: value }));
-        }
-    };
-    
-    const handleEditChange = (e) => {
-        const { name, value, checked } = e.target;
-        // 1. Handle Size Checkboxes for Editing
-        if (name === 'sizes') {
-            const size = value;
-            setEditData(prev => {
-                const currentSizes = prev.sizes || [];
-                if (checked) {
-                    return { ...prev, sizes: [...currentSizes, size] };
-                } else {
-                     return { ...prev, sizes: currentSizes.filter(s => s !== size) };
-                }
-            });
-
-            // 2. Handle Multiple Image URL Inputs for Editing (using indices 1, 2, 3)
-        } else if (name.startsWith('editImageUrl')) {
-            const index = parseInt(name.slice(-1), 10);
-            if (index >= 1 && index <= 3) {
-                setEditData(prev => {
-                    // Ensure we have a base array of 3 if missing or shorter
-                    const newUrls = [...(prev.imageUrls || ['', '', ''])]; 
-                    newUrls[index - 1] = value;
-                    return { ...prev, imageUrls: newUrls };
-                });
-            }
-
-       // 3. Handle Regular Inputs
-        } else {
-            setEditData(prev => ({ ...prev, [name]: value }));
-        }
-    };
-
-    /**
-     * Navigates the user to the root path, simulating a redirect to the login screen.
-     */
-    const handleGoToLogin = () => {
-        // Clear the stored token to force a logout/re-authentication
-        localStorage.removeItem('token'); 
-        console.log("LOGOUT simulated.");
-        window.location.href = '/app';
-    };
-
-
-
-    // --- Data Fetch Effect (GET) ---
-    useEffect(() => {
-        const loadProducts = async () => {
-            if (!isAuthenticated) return;
-
-            setDataLoading(true);
-            setError(null);
-            try {
-                const fetchedProducts = await fetchProducts();
-                setProducts(fetchedProducts);
-            } catch (e) {
-                // If 401/403 (unauthorized), set a specific error message
-                const msg = e.message.includes("401") || e.message.includes("403") 
-                    ? "Authentication failed. Please log in as an Admin (check server logs)." 
-                    : e.message;
-                setError(msg);
-                setProducts([]);
-            } finally {
-                setDataLoading(false);
-                setIsDataReady(true);
-            }
-        };
-
-        loadProducts();
-    }, [isAuthenticated, refetchTrigger]);
-
-    // --- Add Product Handler (POST) ---
-    const handleAddProduct = async (e) => {
-        e.preventDefault();
-        if (isSubmitting || !isAuthenticated) return;
-
-        if (!newProduct.name || !newProduct.price || !newProduct.description || !newProduct.stock) {
-            setError("Please fill in all required fields (Name, Price, Description, Stock).");
-            return;
-        }
-
-        setIsSubmitting(true);
-        setError(null);
-
-        try {
-
-            // Filter out empty URL strings
-            let finalImageUrls = newProduct.imageUrls.filter(url => url.trim() !== '');
-             // Ensure a default image if all fields were left empty
-            if (finalImageUrls.length === 0) {
-                 finalImageUrls = ['https://placehold.co/600x400/000000/FFFFFF?text=Product+Image'];
-            }
-
-            const productData = {
-                ...newProduct,
-                price: parseFloat(newProduct.price),
-                stock: parseInt(newProduct.stock, 10),
-                imageUrls: finalImageUrls,
-                sizes: newProduct.sizes, 
-            };
-
-            await addProduct(productData);
-            setRefetchTrigger(prev => prev + 1); 
-
-          // Reset form
-            setNewProduct({
-                name: '', price: '', description: '', category: 'Men', 
-                imageUrls: ['', '', ''], stock: '10', sizes: [],
-            });
-        } catch (e) {
-            console.error("Error adding product: ", e);
-            setError(`Failed to add product: ${e.message}`);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
-    // --- Delete Product Handler (DELETE) ---
-   const handleDeleteProduct = async (productId) => {
-        if (!isAuthenticated || isUpdating || isSubmitting) return;
-
-        // Use prompt as a safer alternative to window.confirm()
-        const confirmation = prompt(`Type 'DELETE' to confirm deletion of product ID: ${productId}`);
-
-        if (confirmation === 'DELETE') {
-            setIsUpdating(true);
-            setError(null);
-
-            try {
-                await deleteProduct(productId);
-                setRefetchTrigger(prev => prev + 1); 
-            } catch (e) {
-                console.error("Error deleting product: ", e);
-                setError(`Failed to delete product: ${e.message}`);
-            } finally {
-                setIsUpdating(false);
-            }
-        }
-    };
-    
-    // --- Edit/Update Handlers (PUT) ---
-    const startEditing = (product) => {
-        setEditingId(product._id);
-        
-        // Pad imageUrls array to ensure it always has 3 elements for the inputs
-        const paddedImageUrls = [...(product.imageUrls || []), '', ''].slice(0, 3);
-
-        setEditData({
-            name: product.name,
-            price: String(product.price), 
-            stock: String(product.stock),
-            category: product.category,
-            description: product.description,
-            imageUrls: paddedImageUrls, // Array of 3 for form inputs
-            sizes: product.sizes || [], // Array of selected sizes
-        });
-        setError(null);
-    };
-
-    const handleUpdateSubmit = async () => {
-        if (!editingId || isUpdating) return;
-        
-        setIsUpdating(true);
-        setError(null);
-
-        try {
-            // Filter out empty URLs before sending
-            let finalImageUrls = editData.imageUrls.filter(url => url.trim() !== '');
-
-            if (finalImageUrls.length === 0) {
-                 finalImageUrls = ['https://placehold.co/600x400/000000/FFFFFF?text=Product+Image'];
-            }
-            
-            const updatedProductData = {
-                ...editData,
-                price: parseFloat(editData.price),
-                stock: parseInt(editData.stock, 10),
-                imageUrls: finalImageUrls,
-                sizes: editData.sizes,
-            };
-
-            await updateProduct(editingId, updatedProductData);
-            setEditingId(null);
-            setRefetchTrigger(prev => prev + 1); 
-            
-        } catch (e) {
-            console.error("Error updating product: ", e);
-            setError(`Failed to update product: ${e.message}`);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-    
-    const cancelEditing = () => {
-        setEditingId(null);
-        setEditData({});
-    };
-
-    const totalProducts = useMemo(() => products.length, [products]);
-
-    // --- Render Logic ---
-    if (!isDataReady) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <p className="text-xl font-medium text-[#ea2e0e]">Attempting connection to server at **{API_BASE_URL}**...</p>
-            </div>
-        );
-    }
-    
-    return (
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
-            <div className="max-w-6xl mx-auto">
-                <header className="flex justify-between items-center mb-8 pt-4">
-                    <h1 className="text-4xl font-extrabold text-gray-900 flex items-center">
-                        <IconWrenchScrewdriver className="w-8 h-8 mr-3 text-[#ea2e0e]" />
-                        E-Commerce Product Manager (Admin)
-                    </h1>
-                    {/* --- LOGIN BUTTON ADDED HERE --- */}
-                    <button
-                        onClick={handleGoToLogin}
-                        className="flex items-center py-2 px-4 border border-gray-300 rounded-full text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100 shadow-sm transition duration-150"
-                        title="LogOut"
-                    >
-                        <IconArrowLeftOnRectangle className="w-5 h-5 mr-1" />
-                        Logout
-                    </button>
-                    {/* ---------------------------------- */}
-                </header>
-                
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6 shadow-md" role="alert">
-                        <p className="font-bold">Server Error:</p>
-                        <p className="text-sm">{error}</p>
-                    </div>
-                )}
-
-                {/* --- ADD PRODUCT FORM SECTION --- */}
-                <div className="bg-white p-6 rounded-2xl shadow-xl mb-10">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center">
-                        <IconPlus className="w-6 h-6 mr-2 text-green-500" />
-                        Add New Product (POST /api/admin/products)
-                    </h2>
-                    <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Fields */}
-                        <div className="col-span-full md:col-span-1">
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                            <input type="text" name="name" id="name" value={newProduct.name} onChange={handleInputChange} required placeholder="e.g., Slim Fit Casual Shirt" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150"/>
-                        </div>
-                        <div className="flex space-x-4 col-span-full md:col-span-1">
-                            <div className="flex-1">
-                                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                                <div className="relative">
-                                    <IconCurrencyDollar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"/>
-                                    <input type="number" name="price" id="price" value={newProduct.price} onChange={handleInputChange} required min="0.01" step="0.01" placeholder="39.99" className="w-full border border-gray-300 rounded-lg p-3 pl-9 focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150"/>
-                                </div>
-                            </div>
-                             <div className="flex-1">
-                                <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
-                                <div className="relative">
-                                    <IconCube className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"/>
-                                    <input type="number" name="stock" id="stock" value={newProduct.stock} onChange={handleInputChange} required min="0" placeholder="10" className="w-full border border-gray-300 rounded-lg p-3 pl-9 focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150"/>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="col-span-full md:col-span-1">
-                            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select name="category" id="category" value={newProduct.category} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150">
-                                <option value="Men">Men</option>
-                                <option value="Women">Women</option>
-                                <option value="Top Wear">Top Wear</option>
-                                <option value="Bottom Wear">Bottom Wear</option>
-                                <option value="Accessories">Accessories</option>
-                            </select>
-                        </div>
-                        <div className="md:col-span-1 space-y-4">
-                             <h3 className="text-base font-semibold text-gray-800 flex items-center border-b pb-2">
-                                <IconImages className="w-5 h-5 mr-2 text-blue-500" />
-                                Product Images (Max 3 URLs)
-                            </h3>
-                            {[1, 2, 3].map(i => (
-                                <div key={i}>
-                                    <label htmlFor={`imageUrl${i}`} className="block text-sm font-medium text-gray-700 mb-1">Image URL {i} (Primary if 1)</label>
-                                    <input 
-                                        type="url" 
-                                        name={`imageUrl${i}`} 
-                                        id={`imageUrl${i}`} 
-                                        value={newProduct.imageUrls[i-1] || ''} 
-                                        onChange={handleInputChange} 
-                                        placeholder={`https://placehold.co/600x400 (Optional)`} 
-                                        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="col-span-full">
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea name="description" id="description" rows="3" value={newProduct.description} onChange={handleInputChange} required placeholder="A brief description of the product, its features, and materials." className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#ea2e0e] focus:border-[#ea2e0e] transition duration-150 resize-none"></textarea>
-                        </div>
-                         <div className="col-span-full border-t pt-6 mt-4">
-                            <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center">
-                                <IconMaximize2 className="w-5 h-5 mr-2 text-purple-500" />
-                                Available Sizes
-                            </h3>
-                            <div className="flex flex-wrap gap-4">
-                                {AVAILABLE_SIZES.map(size => (
-                                    <label key={size} className="flex items-center space-x-2 p-2 px-4 border border-gray-300 rounded-full hover:bg-gray-50 cursor-pointer transition">
-                                        <input
-                                            type="checkbox"
-                                            name="sizes"
-                                            value={size}
-                                            checked={newProduct.sizes.includes(size)}
-                                            onChange={handleInputChange}
-                                            className="form-checkbox h-4 w-4 text-[#ea2e0e] rounded focus:ring-[#ea2e0e] border-gray-300"
-                                        />
-                                        <span className="text-sm font-medium text-gray-700">{size}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        {/* Submit Button */}
-                        <div className="col-span-full flex justify-end">
-                            <button
-                                type="submit"
-                                disabled={isSubmitting || isUpdating}
-                                className={`flex items-center justify-center py-3 px-8 rounded-full text-white font-semibold shadow-lg transition duration-300 
-                                    ${isSubmitting ? 'bg-gray-400' : 'bg-[#ea2e0e] hover:bg-[#c4250c]'}`
-                                }
-                            >
-                                {isSubmitting ? 'Publishing...' : 'Publish Product'}
-                                <IconSparkles className="w-5 h-5 ml-2"/>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                
-                {/* --- PRODUCTS LIST SECTION --- */}
-                <div className="bg-white p-6 rounded-2xl shadow-xl">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 flex items-center justify-between">
-                        Products Inventory ({totalProducts})
-                        {dataLoading && <span className="text-sm text-gray-500 ml-4">Loading Products...</span>}
-                    </h2>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                           <tbody className="bg-white divide-y divide-gray-200">
-                                {products.map((product) => {
-                                    const isEditing = editingId === product._id;
-                                    // Use the first image URL for the primary display
-                                    const primaryImageUrl = product.imageUrls && product.imageUrls.length > 0 
-                                        ? product.imageUrls[0] 
-                                        : 'https://placehold.co/40x40/f1f1f1/4a4a4a?text=IMG';
-
-                                    return (
-                                    <tr key={product._id} className={isEditing ? 'bg-yellow-50/50' : ''}>
-                                        {/* Product Info */}
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-start">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <img 
-                                                        className="h-10 w-10 rounded-lg object-cover" 
-                                                        src={primaryImageUrl} 
-                                                        alt={product.name} 
-                                                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x40/f1f1f1/4a4a4a?text=IMG"; }}
-                                                    />
-                                                </div>
-                                                <div className="ml-4">
-                                                    {isEditing ? (
-                                                        <input type="text" name="name" value={editData.name || ''} onChange={handleEditChange} className="w-full border rounded p-1 text-sm font-medium" />
-                                                    ) : (
-                                                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                                                    )}
-                                                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                                                        {isEditing ? (
-                                                            <textarea name="description" rows="2" value={editData.description || ''} onChange={handleEditChange} className="w-full border rounded p-1 text-xs resize-none" />
-                                                        ) : (
-                                                            product.description.substring(0, 50) + (product.description.length > 50 ? '...' : '')
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        
-                                        {/* Category */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {isEditing ? (
-                                                <select name="category" value={editData.category} onChange={handleEditChange} className="border rounded p-1 text-xs bg-white">
-                                                    <option value="Men">Men</option>
-                                                    <option value="Women">Women</option>
-                                                    <option value="Top Wear">Top Wear</option>
-                                                    <option value="Bottom Wear">Bottom Wear</option>
-                                                    <option value="Accessories">Accessories</option>
-                                                </select>
-                                            ) : (
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                    {product.category}
-                                                </span>
-                                            )}
-                                        </td>
-                                        
-                                        {/* Price */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {isEditing ? (
-                                                <input type="number" name="price" value={editData.price} onChange={handleEditChange} min="0.01" step="0.01" className="w-20 border rounded p-1 text-sm" />
-                                            ) : (
-                                                `$${product.price ? product.price.toFixed(2) : '0.00'}`
-                                            )}
-                                        </td>
-
-                                        {/* Stock */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {isEditing ? (
-                                                <input type="number" name="stock" value={editData.stock} onChange={handleEditChange} min="0" className="w-16 border rounded p-1 text-sm" />
-                                            ) : (
-                                                product.stock
-                                            )}
-                                        </td>
-                                        {/* Sizes (NEW) */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 w-40">
-                                            {isEditing ? (
-                                                <div className="flex flex-wrap gap-1 border p-1 rounded bg-white">
-                                                    {AVAILABLE_SIZES.map(size => (
-                                                        <label key={size} className="flex items-center text-xs p-1">
-                                                            <input
-                                                                type="checkbox"
-                                                                name="sizes"
-                                                                value={size}
-                                                                checked={(editData.sizes || []).includes(size)}
-                                                                onChange={(e) => handleEditChange(e, true)}
-                                                                className="form-checkbox h-3 w-3 text-[#ea2e0e] rounded focus:ring-[#ea2e0e] border-gray-300 mr-1"
-                                                            />
-                                                            {size}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(product.sizes || []).map(size => (
-                                                        <span key={size} className="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-700">
-                                                            {size}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </td>
-
-                                        {/* Actions */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                            {isEditing ? (
-                                                <>
-                                                    <button 
-                                                        onClick={handleUpdateSubmit}
-                                                        disabled={isUpdating}
-                                                        className="text-green-600 hover:text-green-900 transition disabled:text-gray-400"
-                                                        title="Save Changes (PUT)"
-                                                    >
-                                                        {isUpdating ? 'Saving...' : <IconCheck className='w-5 h-5 inline'/>}
-                                                    </button>
-                                                    <button 
-                                                        onClick={cancelEditing}
-                                                        className="text-gray-500 hover:text-gray-700 transition"
-                                                        title="Cancel"
-                                                    >
-                                                        <IconXMark className='w-5 h-5 inline'/>
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button 
-                                                        onClick={() => startEditing(product)}
-                                                        disabled={isUpdating || isSubmitting}
-                                                        className="text-blue-600 hover:text-blue-900 transition disabled:text-gray-400"
-                                                        title="Edit (PUT)"
-                                                    >
-                                                        <IconPencil className='w-5 h-5 inline'/>
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDeleteProduct(product._id)}
-                                                        disabled={isUpdating || isSubmitting}
-                                                        className={`text-red-600 hover:text-red-900 transition disabled:text-gray-400`}
-                                                        title="Delete (DELETE)"
-                                                    >
-                                                        <IconTrash className='w-5 h-5 inline'/>
-                                                    </button>
-                                                </>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )})}
-                            </tbody>
-                        </table>
-                        
-                        {totalProducts === 0 && !dataLoading && (
-                            <div className="text-center py-10 text-gray-500">
-                                No products found. Try adding one above!
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            
-            <footer className="mt-10 text-center text-xs text-gray-500">
-                Client is connected to **{API_BASE_URL}** using standard **fetch** calls with `credentials: 'include'` for cookie-based authentication.
-            </footer>
+/* ── Size picker ── */
+const SizePicker = ({ selected, onChange, inline = false }) => (
+  <div className="adm-sizes">
+    {AVAILABLE_SIZES.map(size => {
+      const checked = selected.includes(size);
+      return (
+        <div
+          key={size}
+          className={`adm-size-chip${checked ? ' checked' : ''}`}
+          onClick={() => {
+            if (checked) onChange(selected.filter(s => s !== size));
+            else onChange([...selected, size]);
+          }}
+        >
+          <label style={{ padding: inline ? '4px 10px' : undefined }}>{size}</label>
         </div>
+      );
+    })}
+  </div>
+);
+
+/* ── Main ── */
+const AdminProductManager = () => {
+  const [products, setProducts]         = useState([]);
+  const [dataLoading, setDataLoading]   = useState(false);
+  const [isDataReady, setIsDataReady]   = useState(false);
+  const [error, setError]               = useState(null);
+  const [refetch, setRefetch]           = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(null); // productId | null
+
+  const [newProduct, setNewProduct] = useState({
+    name: '', price: '', description: '', category: 'Men',
+    imageUrls: ['', '', ''], stock: '10', sizes: [],
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [editingId, setEditingId]   = useState(null);
+  const [editData, setEditData]     = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  /* Inject styles */
+  useEffect(() => {
+    const id = 'adm-styles';
+    if (!document.getElementById(id)) {
+      const s = document.createElement('style');
+      s.id = id; s.textContent = STYLES;
+      document.head.appendChild(s);
+    }
+  }, []);
+
+  /* Fetch */
+  useEffect(() => {
+    (async () => {
+      setDataLoading(true); setError(null);
+      try {
+        setProducts(await fetchProducts());
+      } catch (e) {
+        setError(e.message); setProducts([]);
+      } finally {
+        setDataLoading(false); setIsDataReady(true);
+      }
+    })();
+  }, [refetch]);
+
+  /* Stats */
+  const totalProducts = products.length;
+  const lowStock      = useMemo(() => products.filter(p => p.stock <= 5).length, [products]);
+  const totalValue    = useMemo(() => products.reduce((s, p) => s + (p.price * p.stock), 0), [products]);
+
+  /* Handlers */
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name.startsWith('imageUrl')) {
+      const i = parseInt(name.slice(-1), 10) - 1;
+      setNewProduct(p => { const u = [...p.imageUrls]; u[i] = value; return { ...p, imageUrls: u }; });
+    } else {
+      setNewProduct(p => ({ ...p, [name]: value }));
+    }
+  };
+
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    if (!newProduct.name || !newProduct.price || !newProduct.description || !newProduct.stock) {
+      setError('Please fill in all required fields.'); return;
+    }
+    setIsSubmitting(true); setError(null);
+    try {
+      const urls = newProduct.imageUrls.filter(u => u.trim());
+      await addProduct({
+        ...newProduct,
+        price: parseFloat(newProduct.price),
+        stock: parseInt(newProduct.stock, 10),
+        imageUrls: urls.length ? urls : ['https://placehold.co/600x400/111/eee?text=Product'],
+      });
+      setRefetch(r => r + 1);
+      setNewProduct({ name: '', price: '', description: '', category: 'Men', imageUrls: ['', '', ''], stock: '10', sizes: [] });
+    } catch (e) { setError(e.message); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    if (name.startsWith('editImageUrl')) {
+      const i = parseInt(name.slice(-1), 10) - 1;
+      setEditData(p => { const u = [...(p.imageUrls || ['', '', ''])]; u[i] = value; return { ...p, imageUrls: u }; });
+    } else {
+      setEditData(p => ({ ...p, [name]: value }));
+    }
+  };
+
+  const startEditing = (product) => {
+    setEditingId(product._id);
+    setEditData({
+      name: product.name, price: String(product.price), stock: String(product.stock),
+      category: product.category, description: product.description,
+      imageUrls: [...(product.imageUrls || []), '', ''].slice(0, 3),
+      sizes: product.sizes || [],
+    });
+    setError(null);
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!editingId || isUpdating) return;
+    setIsUpdating(true); setError(null);
+    try {
+      const urls = editData.imageUrls.filter(u => u.trim());
+      await updateProduct(editingId, {
+        ...editData,
+        price: parseFloat(editData.price),
+        stock: parseInt(editData.stock, 10),
+        imageUrls: urls.length ? urls : ['https://placehold.co/600x400/111/eee?text=Product'],
+      });
+      setEditingId(null); setRefetch(r => r + 1);
+    } catch (e) { setError(e.message); }
+    finally { setIsUpdating(false); }
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!confirmDelete) return;
+    setIsUpdating(true); setError(null);
+    try {
+      await deleteProduct(confirmDelete);
+      setRefetch(r => r + 1);
+    } catch (e) { setError(e.message); }
+    finally { setIsUpdating(false); setConfirmDelete(null); }
+  };
+
+  if (!isDataReady) {
+    return (
+      <div className="adm-loading">
+        <div className="adm-loading-ring" />
+        <span className="adm-loading-text">Connecting to server…</span>
+      </div>
     );
+  }
+
+  return (
+    <div className="adm-root">
+      <style>{STYLES}</style>
+      {confirmDelete && (
+        <ConfirmModal
+          msg="This product will be permanently removed from your inventory. This action cannot be undone."
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {/* ── Top bar ── */}
+      <div className="adm-topbar">
+        <div className="adm-topbar-left">
+          <span className="adm-wordmark">ONE MAN</span>
+          <span className="adm-badge">Admin</span>
+        </div>
+        <button className="adm-logout-btn" onClick={() => { localStorage.removeItem('token'); window.location.href = '/app'; }}>
+          <LogOut size={13} /> Sign Out
+        </button>
+      </div>
+
+      <div className="adm-body">
+
+        {/* ── Stats ── */}
+        <div className="adm-stats">
+          <div className="adm-stat">
+            <div className="adm-stat-label">Total Products</div>
+            <div className="adm-stat-value">{totalProducts}</div>
+            <div className="adm-stat-sub">in inventory</div>
+          </div>
+          <div className="adm-stat">
+            <div className="adm-stat-label">Low Stock</div>
+            <div className="adm-stat-value" style={{ color: lowStock > 0 ? PRIMARY : undefined }}>{lowStock}</div>
+            <div className="adm-stat-sub">≤ 5 units remaining</div>
+          </div>
+          <div className="adm-stat">
+            <div className="adm-stat-label">Inventory Value</div>
+            <div className="adm-stat-value">
+              <span style={{ fontSize: 14, opacity: 0.4 }}>Ksh </span>
+              {totalValue.toLocaleString('en-KE')}
+            </div>
+            <div className="adm-stat-sub">price × stock</div>
+          </div>
+        </div>
+
+        {/* ── Error ── */}
+        {error && (
+          <div className="adm-error">
+            <AlertCircle size={15} />
+            {error}
+          </div>
+        )}
+
+        {/* ── Add Product ── */}
+        <div className="adm-card" style={{ marginBottom: 24 }}>
+          <div className="adm-card-header">
+            <span className="adm-card-title"><IconPlus size={13} /> Add New Product</span>
+          </div>
+          <form onSubmit={handleAddProduct}>
+            <div className="adm-form-grid">
+              <div>
+                <label className="adm-label">Product Name *</label>
+                <input name="name" type="text" className="adm-input" value={newProduct.name} onChange={handleInputChange} placeholder="e.g. Slim Fit Cotton Shirt" required />
+              </div>
+              <div>
+                <label className="adm-label">Category</label>
+                <select name="category" className="adm-select" value={newProduct.category} onChange={handleInputChange}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="adm-label">Price (Ksh) *</label>
+                <input name="price" type="number" className="adm-input" value={newProduct.price} onChange={handleInputChange} placeholder="2500" min="0.01" step="0.01" required />
+              </div>
+              <div>
+                <label className="adm-label">Stock *</label>
+                <input name="stock" type="number" className="adm-input" value={newProduct.stock} onChange={handleInputChange} placeholder="10" min="0" required />
+              </div>
+
+              {/* Image URLs */}
+              <div className="adm-full">
+                <label className="adm-label" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <IconImages size={12} /> Image URLs (up to 3)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i}>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', marginBottom: 5 }}>
+                        IMAGE {i}{i === 1 ? ' (primary)' : ' (optional)'}
+                      </div>
+                      <input
+                        name={`imageUrl${i}`} type="url" className="adm-input"
+                        value={newProduct.imageUrls[i - 1] || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://…"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="adm-full">
+                <label className="adm-label">Description *</label>
+                <textarea name="description" className="adm-textarea" rows={3} value={newProduct.description} onChange={handleInputChange} placeholder="Describe the product — fabric, fit, features…" required />
+              </div>
+
+              <div className="adm-full">
+                <label className="adm-label" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <IconMaximize2 size={12} /> Available Sizes
+                </label>
+                <SizePicker
+                  selected={newProduct.sizes}
+                  onChange={sizes => setNewProduct(p => ({ ...p, sizes }))}
+                />
+              </div>
+
+              <div className="adm-full" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className="adm-publish-btn" disabled={isSubmitting || isUpdating}>
+                  {isSubmitting ? <><span className="adm-spinner" /> Publishing…</> : <><IconSparkles size={14} /> Publish Product</>}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* ── Products Table ── */}
+        <div className="adm-card">
+          <div className="adm-card-header">
+            <span className="adm-card-title">
+              <Package size={13} /> Inventory
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+                {totalProducts} products
+              </span>
+            </span>
+            {dataLoading && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}><span className="adm-spinner" /> Refreshing…</span>}
+          </div>
+
+          <div className="adm-table-wrap">
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Sizes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(product => {
+                  const isEditing = editingId === product._id;
+                  const thumb = product.imageUrls?.[0] || 'https://placehold.co/44x54/111/333?text=·';
+                  return (
+                    <tr key={product._id} className={isEditing ? 'editing' : ''}>
+
+                      {/* Product */}
+                      <td style={{ minWidth: 220 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                          <img className="adm-thumb" src={thumb} alt={product.name} onError={e => { e.target.src = 'https://placehold.co/44x54/111/333?text=·'; }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {isEditing ? (
+                              <>
+                                <input name="name" className="adm-inline-input" value={editData.name || ''} onChange={handleEditChange} style={{ marginBottom: 5 }} />
+                                <textarea name="description" className="adm-inline-textarea" rows={2} value={editData.description || ''} onChange={handleEditChange} />
+                                <div style={{ marginTop: 6 }}>
+                                  <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', marginBottom: 4 }}>IMAGES</div>
+                                  {[1, 2, 3].map(i => (
+                                    <input key={i} name={`editImageUrl${i}`} type="url" className="adm-inline-input" style={{ marginBottom: 3 }}
+                                      value={editData.imageUrls?.[i - 1] || ''} onChange={handleEditChange} placeholder={`Image ${i} URL`} />
+                                  ))}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ fontWeight: 600, color: '#fff', marginBottom: 3, fontSize: 13 }}>{product.name}</div>
+                                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.28)', lineHeight: 1.5 }}>
+                                  {product.description?.substring(0, 60)}{product.description?.length > 60 ? '…' : ''}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td>
+                        {isEditing ? (
+                          <select name="category" className="adm-inline-select" value={editData.category} onChange={handleEditChange}>
+                            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        ) : (
+                          <span className="adm-cat-pill">{product.category}</span>
+                        )}
+                      </td>
+
+                      {/* Price */}
+                      <td>
+                        {isEditing ? (
+                          <input name="price" type="number" className="adm-inline-input" style={{ width: 90 }} value={editData.price} onChange={handleEditChange} min="0.01" step="0.01" />
+                        ) : (
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                            {product.price?.toLocaleString('en-KE')}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Stock */}
+                      <td>
+                        {isEditing ? (
+                          <input name="stock" type="number" className="adm-inline-input" style={{ width: 70 }} value={editData.stock} onChange={handleEditChange} min="0" />
+                        ) : (
+                          <span className={`adm-stock ${product.stock <= 5 ? 'low' : 'ok'}`}>{product.stock}</span>
+                        )}
+                      </td>
+
+                      {/* Sizes */}
+                      <td style={{ minWidth: 160 }}>
+                        {isEditing ? (
+                          <SizePicker inline selected={editData.sizes || []} onChange={sizes => setEditData(p => ({ ...p, sizes }))} />
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                            {(product.sizes || []).length > 0
+                              ? product.sizes.map(s => <span key={s} className="adm-size-tag">{s}</span>)
+                              : <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>One Size</span>
+                            }
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {isEditing ? (
+                            <>
+                              <button className="adm-action-btn save" onClick={handleUpdateSubmit} disabled={isUpdating} title="Save">
+                                {isUpdating ? <span className="adm-spinner" style={{ width: 11, height: 11 }} /> : <IconCheck size={14} />}
+                              </button>
+                              <button className="adm-action-btn cancel" onClick={() => setEditingId(null)} title="Cancel">
+                                <IconXMark size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="adm-action-btn edit" onClick={() => startEditing(product)} disabled={isUpdating || isSubmitting} title="Edit">
+                                <IconPencil size={13} />
+                              </button>
+                              <button className="adm-action-btn delete" onClick={() => setConfirmDelete(product._id)} disabled={isUpdating || isSubmitting} title="Delete">
+                                <IconTrash size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {totalProducts === 0 && !dataLoading && (
+              <div className="adm-empty">
+                <div className="adm-empty-title">No Products</div>
+                <p className="adm-empty-sub">Add your first product using the form above.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
 };
 
 export default AdminProductManager;

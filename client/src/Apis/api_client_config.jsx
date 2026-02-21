@@ -9,7 +9,7 @@ axios.defaults.withCredentials = true;
 
 // -------------------------------------------------------------
 // Define the Base URL for all API requests
-axios.defaults.baseURL = 'http://localhost:5000/api'; 
+axios.defaults.baseURL = 'https://one-man-server.onrender.com/api'; 
 // -------------------------------------------------------------
 
 /**
