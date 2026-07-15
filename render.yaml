@@ -1,0 +1,42 @@
+# Render blueprint for the Nivora-ecommerce monorepo.
+# Deploys the Node/Express backend (server/) + a managed PostgreSQL.
+# In Render: New → Blueprint → connect the Nivora-ecommerce repo; it reads this file.
+# Secrets marked `sync: false` must be filled in the Render dashboard.
+
+databases:
+  - name: nivora-db
+    plan: free
+
+services:
+  - type: web
+    name: nivora-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      # DB connection string wired automatically from the database above
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nivora-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # Auto-generated strong secret for JWT signing
+      - key: JWT_SECRET
+        generateValue: true
+      # Comma-separated frontend origins allowed by CORS
+      # e.g. https://your-site.netlify.app
+      - key: CLIENT_ORIGINS
+        sync: false
+      # Paystack + email secrets — set these in the Render dashboard
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: STORE_EMAIL
+        sync: false
+      - key: STORE_EMAIL_PASSWORD
+        sync: false
+      - key: ORDER_NOTIFICATION_EMAIL
+        sync: false

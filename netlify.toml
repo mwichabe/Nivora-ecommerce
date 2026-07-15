@@ -1,0 +1,15 @@
+# Netlify config for the Nivora-ecommerce monorepo.
+# Netlify builds ONLY the frontend in client/. The Node backend deploys to Render.
+# Set VITE_API_URL in the Netlify UI (Site settings → Environment variables) to
+# your backend, e.g. https://one-man-server.onrender.com/api
+
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback so client-side routes (/shop, /admin, …) work on refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

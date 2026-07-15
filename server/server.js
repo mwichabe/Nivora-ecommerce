@@ -29,11 +29,15 @@ const PORT = process.env.PORT || 5000;
 
 // --- MIDDLEWARE CONFIGURATION ---
 
-const allowedOrigins = [
-  "https://one-man-botique.pages.dev",
-  "http://localhost:5173",
-  "https://one-man-client.vercel.app"
-];
+// Allowed origins: localhost for dev + any set via the CLIENT_ORIGINS env var
+// (comma-separated, e.g. "https://your-site.netlify.app,https://www.yourdomain.com").
+const defaultOrigins = ["http://localhost:5173"];
+const envOrigins = (process.env.CLIENT_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
 app.use(
   cors({
     origin: allowedOrigins,

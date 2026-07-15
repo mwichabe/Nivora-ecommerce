@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local env (set VITE_API_URL in Netlify UI instead)
+.env
