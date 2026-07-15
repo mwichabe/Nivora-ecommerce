@@ -4,9 +4,10 @@ import axios from 'axios';
 // Import Context Hooks
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { API_BASE } from '../../config';
 
 // --- Constants ---
-const CART_API_URL = 'https://one-man-server.onrender.com/api/cart';
+const CART_API_URL = `${API_BASE}/cart`;
 
 export const ProductModal = ({ product, onClose }) => {
     

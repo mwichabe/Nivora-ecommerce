@@ -1,41 +1,38 @@
-const Subscriber = require("../Models/subscriber");
+const prisma = require("../Utils/prisma");
+
+const EMAIL_RE = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
 
 const addSubscriber = async (req, res) => {
   const { email } = req.body;
 
-  // Basic validation (Mongoose schema has more)
   if (!email) {
     return res.status(400).json({ message: "Email is required" });
   }
 
-  try {
-    // Check if subscriber already exists
-    const existingSubscriber = await Subscriber.findOne({ email });
+  const normalized = email.toLowerCase().trim();
 
-    if (existingSubscriber) {
+  if (!EMAIL_RE.test(normalized)) {
+    return res.status(400).json({ message: "Please enter a valid email address" });
+  }
+
+  try {
+    const existing = await prisma.subscriber.findUnique({ where: { email: normalized } });
+
+    if (existing) {
       return res.status(409).json({ message: "This email is already subscribed" });
     }
 
-    // Create and save the new subscriber
-    const newSubscriber = new Subscriber({ email });
-    await newSubscriber.save();
+    const newSubscriber = await prisma.subscriber.create({ data: { email: normalized } });
 
     res.status(201).json({
       message: "Subscription successful! Welcome to the newsletter.",
       email: newSubscriber.email,
     });
   } catch (error) {
-    // Handle Mongoose validation errors or general server errors
     console.error("Subscription error:", error);
 
-    if (error.code === 11000) { 
-        return res.status(409).json({ message: "This email is already subscribed" });
-    }
-
-    // Check for Mongoose validation error
-    if (error.name === 'ValidationError') {
-        const messages = Object.values(error.errors).map(val => val.message);
-        return res.status(400).json({ message: messages.join(', ') });
+    if (error.code === "P2002") {
+      return res.status(409).json({ message: "This email is already subscribed" });
     }
 
     res.status(500).json({ message: "Server error during subscription" });

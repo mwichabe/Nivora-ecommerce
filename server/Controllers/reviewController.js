@@ -1,16 +1,19 @@
 const asyncHandler = require("express-async-handler");
-const Review = require("../Models/review");
-const User = require("../Models/userModel");
+const prisma = require("../Utils/prisma");
+const { serializeReview } = require("../Utils/serializers");
+
+// Include the review author's public fields (mirrors the old .populate('user', 'name email'))
+const withUser = { user: { select: { id: true, name: true, email: true } } };
 
 // @desc    Get all reviews
 // @route   GET /api/reviews
 // @access  Public
 const getReviews = asyncHandler(async (req, res) => {
-    const reviews = await Review.find({})
-        .populate('user', 'name email')
-        .sort({ createdAt: -1 });
-
-    res.json(reviews);
+    const reviews = await prisma.review.findMany({
+        include: withUser,
+        orderBy: { createdAt: "desc" },
+    });
+    res.json(reviews.map(serializeReview));
 });
 
 // @desc    Create a new review
@@ -19,35 +22,30 @@ const getReviews = asyncHandler(async (req, res) => {
 const createReview = asyncHandler(async (req, res) => {
     const { name, rating, comment } = req.body;
 
-    // Validate input
     if (!name || !rating || !comment) {
         res.status(400);
         throw new Error("Please provide all required fields");
     }
-
     if (rating < 1 || rating > 5) {
         res.status(400);
         throw new Error("Rating must be between 1 and 5");
     }
-
     if (comment.length < 10) {
         res.status(400);
         throw new Error("Comment must be at least 10 characters long");
     }
 
-    // Create review
-    const review = await Review.create({
-        user: req.user._id,
-        name: name.trim(),
-        rating: parseInt(rating),
-        comment: comment.trim()
+    const review = await prisma.review.create({
+        data: {
+            userId: req.user._id,
+            name: name.trim(),
+            rating: parseInt(rating),
+            comment: comment.trim(),
+        },
+        include: withUser,
     });
 
-    // Populate user info for response
-    const populatedReview = await Review.findById(review._id)
-        .populate('user', 'name email');
-
-    res.status(201).json(populatedReview);
+    res.status(201).json(serializeReview(review));
 });
 
 // @desc    Update a review
@@ -57,49 +55,42 @@ const updateReview = asyncHandler(async (req, res) => {
     const { name, rating, comment } = req.body;
     const reviewId = req.params.id;
 
-    // Find the review
-    const review = await Review.findById(reviewId);
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
 
     if (!review) {
         res.status(404);
         throw new Error("Review not found");
     }
 
-    // Check if user owns this review
-    if (review.user.toString() !== req.user._id.toString()) {
+    if (review.userId !== req.user._id) {
         res.status(403);
         throw new Error("Not authorized to update this review");
     }
 
-    // Validate input
     if (!name || !rating || !comment) {
         res.status(400);
         throw new Error("Please provide all required fields");
     }
-
     if (rating < 1 || rating > 5) {
         res.status(400);
         throw new Error("Rating must be between 1 and 5");
     }
-
     if (comment.length < 10) {
         res.status(400);
         throw new Error("Comment must be at least 10 characters long");
     }
 
-    // Update review
-    review.name = name.trim();
-    review.rating = parseInt(rating);
-    review.comment = comment.trim();
-    review.updatedAt = Date.now();
+    const updated = await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+            name: name.trim(),
+            rating: parseInt(rating),
+            comment: comment.trim(),
+        },
+        include: withUser,
+    });
 
-    const updatedReview = await review.save();
-
-    // Populate user info for response
-    const populatedReview = await Review.findById(updatedReview._id)
-        .populate('user', 'name email');
-
-    res.json(populatedReview);
+    res.json(serializeReview(updated));
 });
 
 // @desc    Delete a review
@@ -108,21 +99,20 @@ const updateReview = asyncHandler(async (req, res) => {
 const deleteReview = asyncHandler(async (req, res) => {
     const reviewId = req.params.id;
 
-    // Find the review
-    const review = await Review.findById(reviewId);
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
 
     if (!review) {
         res.status(404);
         throw new Error("Review not found");
     }
 
-    // Check if user owns this review or is admin
-    if (review.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+    // Owner or admin may delete
+    if (review.userId !== req.user._id && !req.user.isAdmin) {
         res.status(403);
         throw new Error("Not authorized to delete this review");
     }
 
-    await Review.deleteOne({ _id: reviewId });
+    await prisma.review.delete({ where: { id: reviewId } });
 
     res.json({ message: "Review deleted successfully" });
 });
@@ -131,10 +121,11 @@ const deleteReview = asyncHandler(async (req, res) => {
 // @route   GET /api/reviews/my-reviews
 // @access  Private
 const getMyReviews = asyncHandler(async (req, res) => {
-    const reviews = await Review.find({ user: req.user._id })
-        .sort({ createdAt: -1 });
-
-    res.json(reviews);
+    const reviews = await prisma.review.findMany({
+        where: { userId: req.user._id },
+        orderBy: { createdAt: "desc" },
+    });
+    res.json(reviews.map(serializeReview));
 });
 
 module.exports = {
@@ -142,5 +133,5 @@ module.exports = {
     createReview,
     updateReview,
     deleteReview,
-    getMyReviews
+    getMyReviews,
 };

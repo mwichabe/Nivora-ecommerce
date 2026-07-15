@@ -5,6 +5,7 @@ import { TbBrandMeta } from "react-icons/tb";
 import { FiPhoneCall } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { API_BASE } from '../../config';
 
 const PRIMARY = '#ea2e0e';
 
@@ -232,7 +233,7 @@ const Footer = () => {
     e.preventDefault();
     setMessage(''); setIsError(false); setIsLoading(true);
     try {
-      const { data } = await axios.post('https://one-man-server.onrender.com/api/subscribe', { email });
+      const { data } = await axios.post(`${API_BASE}/subscribe`, { email });
       setMessage(data.message || 'You\'re subscribed!');
       setIsError(false);
       setEmail('');

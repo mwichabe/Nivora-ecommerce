@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineChatBubbleLeftEllipsis } from 'react-icons/hi2';
+import { API_BASE } from '../config';
 
 const PRIMARY = '#ea2e0e';
-const REVIEWS_API_URL = 'https://one-man-server.onrender.com/api/reviews';
+const REVIEWS_API_URL = `${API_BASE}/reviews`;
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -31,6 +32,63 @@ const STYLES = `
     font-size: 48px; letter-spacing: 0.04em; color: #111; line-height: 1;
     margin-bottom: 40px;
   }
+
+  /* ── Rating summary ── */
+  .rv-summary {
+    background: #fff;
+    border: 1px solid #e8e4de;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 640px) { .rv-summary { grid-template-columns: 1fr; } }
+  .rv-summary-score {
+    padding: 30px 32px;
+    border-right: 1px solid #f0ede8;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  @media (max-width: 640px) {
+    .rv-summary-score { border-right: none; border-bottom: 1px solid #f0ede8; }
+  }
+  .rv-summary-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 68px; line-height: 0.9; color: #111; letter-spacing: 0.02em;
+  }
+  .rv-summary-out {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: #ccc; margin: 6px 0 12px;
+  }
+  .rv-summary-count {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #999;
+  }
+  .rv-summary-bars {
+    padding: 26px 34px;
+    display: flex; flex-direction: column; gap: 9px; justify-content: center;
+  }
+  .rv-bar-row { display: flex; align-items: center; gap: 12px; }
+  .rv-bar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: #888;
+    width: 30px; display: flex; align-items: center; gap: 3px;
+  }
+  .rv-bar-label svg { width: 11px; height: 11px; fill: #f59e0b; }
+  .rv-bar-track { flex: 1; height: 6px; background: #f0ede8; overflow: hidden; }
+  .rv-bar-fill { height: 100%; background: #f59e0b; transition: width 0.5s ease; }
+  .rv-bar-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: #bbb; width: 26px; text-align: right;
+  }
+
+  /* ── Avatar ── */
+  .rv-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #111; color: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  }
+  .rv-all-footer { display: flex; align-items: center; gap: 11px; }
 
   /* ── Layout grid ── */
   .rv-grid {
@@ -259,6 +317,18 @@ const StarRating = ({ rating, onChange, interactive = false, size = 18 }) => (
   </div>
 );
 
+/* ── Avatar (reviewer initials) ── */
+const Avatar = ({ name }) => {
+  const initials = (name || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(w => w[0])
+    .join('')
+    .toUpperCase() || '?';
+  return <div className="rv-avatar" aria-hidden="true">{initials}</div>;
+};
+
 /* ── Confirm dialog (replaces window.confirm) ── */
 const useConfirm = () => {
   const [state, setState] = useState({ open: false, resolve: null, msg: '' });
@@ -290,6 +360,17 @@ const Reviews = () => {
   const [editingReview, setEditingReview] = useState(null);
   const [loading, setLoading]       = useState(true);
   const [alert, setAlert]           = useState(null); // { type, msg }
+
+  const stats = useMemo(() => {
+    const total = reviews.length;
+    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    const average = total ? sum / total : 0;
+    const dist = [5, 4, 3, 2, 1].map(star => {
+      const count = reviews.filter(r => r.rating === star).length;
+      return { star, count, pct: total ? (count / total) * 100 : 0 };
+    });
+    return { total, average, dist };
+  }, [reviews]);
 
   const showAlert = (type, msg) => {
     setAlert({ type, msg });
@@ -393,6 +474,34 @@ const Reviews = () => {
         {alert && (
           <div className={`rv-alert ${alert.type}`}>
             {alert.type === 'success' ? '✓' : '✕'} {alert.msg}
+          </div>
+        )}
+
+        {/* ── Rating summary ── */}
+        {stats.total > 0 && (
+          <div className="rv-summary">
+            <div className="rv-summary-score">
+              <div className="rv-summary-num">{stats.average.toFixed(1)}</div>
+              <StarRating rating={Math.round(stats.average)} size={16} />
+              <div className="rv-summary-out">out of 5</div>
+              <div className="rv-summary-count">
+                {stats.total} review{stats.total !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="rv-summary-bars">
+              {stats.dist.map(({ star, count, pct }) => (
+                <div key={star} className="rv-bar-row">
+                  <span className="rv-bar-label">
+                    {star}
+                    <svg viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" /></svg>
+                  </span>
+                  <span className="rv-bar-track">
+                    <span className="rv-bar-fill" style={{ width: `${pct}%` }} />
+                  </span>
+                  <span className="rv-bar-count">{count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -527,8 +636,13 @@ const Reviews = () => {
                     </div>
                     <p className="rv-all-comment">"{review.comment}"</p>
                     <div className="rv-all-divider" />
-                    <div className="rv-all-author">{review.name}</div>
-                    <div className="rv-all-date">{formatDate(review.createdAt)}</div>
+                    <div className="rv-all-footer">
+                      <Avatar name={review.name} />
+                      <div>
+                        <div className="rv-all-author">{review.name}</div>
+                        <div className="rv-all-date">{formatDate(review.createdAt)}</div>
+                      </div>
+                    </div>
                   </div>
                 );
               })}

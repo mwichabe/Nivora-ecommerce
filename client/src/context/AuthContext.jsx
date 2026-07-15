@@ -1,9 +1,10 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import { API_BASE } from '../config';
 
 const AuthContext = createContext();
 
 // Base URL for your authentication API
-const API_URL = 'https://one-man-server.onrender.com/api/users';
+const API_URL = `${API_BASE}/users`;
 
 const LOADING_MESSAGES = [
   "Checking authentication...",

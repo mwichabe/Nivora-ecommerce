@@ -3,9 +3,10 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiMail, FiUser, FiMessageSquare, FiPhoneCall } from 'react-icons/fi';
 import { FaMapMarkerAlt } from 'react-icons/fa';
+import { API_BASE } from '../../config';
 
 const PRIMARY = '#ea2e0e';
-const CONTACT_API_URL = 'https://one-man-server.onrender.com/api/contact';
+const CONTACT_API_URL = `${API_BASE}/contact`;
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });

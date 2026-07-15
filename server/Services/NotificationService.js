@@ -4,8 +4,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.STORE_EMAIL || "mwichabecollins@gmail.com",
-        pass: process.env.STORE_EMAIL_PASSWORD || "vywkybtedndjpajr", 
+        user: process.env.STORE_EMAIL,
+        pass: process.env.STORE_EMAIL_PASSWORD,
     },
 });
 
@@ -24,10 +24,10 @@ const sendNewOrderNotification = async (orderDetails) => {
 
     const mailOptions = {
         // Recipient is the Admin/Store owner
-        to: 'collinsdveloper0@gmail.com', 
-        
+        to: process.env.ORDER_NOTIFICATION_EMAIL || process.env.STORE_EMAIL,
+
         // Sender uses the store's email
-        from: `ONE MAN BOTIQUE New Order <${process.env.STORE_EMAIL || "mwichabecollins@gmail.com"}>`,
+        from: `ONE MAN BOTIQUE New Order <${process.env.STORE_EMAIL}>`,
         
         subject: `🚨 NEW ORDER RECEIVED: #${orderDetails._id.toString().slice(-6)} | Total: KES ${orderDetails.totalPrice.toFixed(2)}`,
         

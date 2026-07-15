@@ -20,10 +20,10 @@ router.get("/public-list", getProducts); // Public endpoint for landing page
 router.get("/:id", getProductById); // Public route for product details
 router.route('/')
     .get(getProducts) // Public GET for products
-    .post(protect, createProduct);
+    .post(protect, admin, createProduct); // Admin-only
 
 router.route('/:id')
-    .put(protect, updateProduct) 
-    .delete(protect, deleteProduct); 
+    .put(protect, admin, updateProduct)      // Admin-only
+    .delete(protect, admin, deleteProduct);  // Admin-only
 
 module.exports = router;

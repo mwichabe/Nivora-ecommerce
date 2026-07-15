@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+import { API_BASE } from '../../config';
 
 /* ─── Constants ─── */
 const PRIMARY = '#ea2e0e';
-const PRODUCT_API_BASE_URL = 'https://one-man-server.onrender.com/api/admin/products';
-const CART_API_URL = 'https://one-man-server.onrender.com/api/cart';
-const ORDERS_API_URL = 'https://one-man-server.onrender.com/api/orders';
+const PRODUCT_API_BASE_URL = `${API_BASE}/admin/products`;
+const CART_API_URL = `${API_BASE}/cart`;
+const ORDERS_API_URL = `${API_BASE}/orders`;
 const PLACEHOLDER = 'https://placehold.co/800x1000/f5f4f2/999999?text=No+Image';
 const DISCOUNT_RATE = 0.20;
 const DISCOUNT_THRESHOLD = 5000;

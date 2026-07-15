@@ -5,11 +5,12 @@ import logo from '../assets/logo.png';
 import logo1 from '../assets/logo1.png';
 import { useAuth } from '../context/AuthContext';
 import { ProductCard } from '../components/Common/productCard';
+import { API_BASE } from '../config';
 
 /* ─── Constants ─── */
 const PRIMARY = '#ea2e0e';
-const API_URL = 'https://one-man-server.onrender.com/api/admin/products';
-const REVIEWS_API_URL = 'https://one-man-server.onrender.com/api/reviews';
+const API_URL = `${API_BASE}/admin/products`;
+const REVIEWS_API_URL = `${API_BASE}/reviews`;
 
 const cache = {};
 const fetchWithCache = async (url, ttl = 60000) => {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { API_BASE } from '../config';
 
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
@@ -12,7 +13,7 @@ export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const CART_API_URL = "https://one-man-server.onrender.com/api/cart";
+  const CART_API_URL = `${API_BASE}/cart`;
 
   const getAuthHeaders = () => {
       const token = localStorage.getItem("token");

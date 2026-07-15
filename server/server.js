@@ -1,7 +1,8 @@
+require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const prisma = require("./Utils/prisma");
 const userRoutes = require("./Routes/userRoutes");
 const adminRoutes = require("./Routes/adminProductRoutes");
 const cartRoutes = require("./Routes/cart");
@@ -11,13 +12,17 @@ const subscribeRoute = require("./Routes/subscriberRoute");
 const reviewRoutes = require("./Routes/reviewRoutes");
 const { errorHandler } = require("./Middleware/errorHandler");
 
-// --- DATABASE CONNECTION ---
-mongoose
-  .connect(
-    "mongodb+srv://mwichabecollins:9dV1iOI0aqXWDFH8@cluster0.pfbrzgm.mongodb.net/"
-  )
-  .then(() => console.log("MongoDB Connected"))
-  .catch((error) => console.log("MongoDB Connection Error:", error));
+// --- DATABASE CONNECTION (PostgreSQL via Prisma) ---
+prisma
+  .$connect()
+  .then(() => console.log("PostgreSQL Connected (Prisma)"))
+  .catch((error) => console.error("PostgreSQL Connection Error:", error));
+
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -1,14 +1,17 @@
 const asyncHandler = require('express-async-handler');
-const Product = require('../Models/product');
+const prisma = require('../Utils/prisma');
+const { serializeProduct } = require('../Utils/serializers');
+
+const DEFAULT_IMAGE = 'https://placehold.co/600x400/000000/FFFFFF?text=Product+Image';
 
 /**
- * @desc    Get all products (Admin List)
+ * @desc    Get all products
  * @route   GET /api/admin/products
- * @access  Private (Admin Only)
+ * @access  Public (listing) — writes below are admin-only
  */
 const getProducts = asyncHandler(async (req, res) => {
-    const products = await Product.find({}).sort({ createdAt: -1 });
-    res.status(200).json(products);
+    const products = await prisma.product.findMany({ orderBy: { createdAt: 'desc' } });
+    res.status(200).json(products.map(serializeProduct));
 });
 
 /**
@@ -19,28 +22,35 @@ const getProducts = asyncHandler(async (req, res) => {
 const createProduct = asyncHandler(async (req, res) => {
     const { name, description, price, stock, category, imageUrls, sizes } = req.body;
 
-    // Validate required fields
     if (!name || !description || !price || !stock || !category) {
         res.status(400);
         throw new Error('Please include all required product fields.');
     }
 
-    // Create the new product
-    const product = await Product.create({
-        user: req.user._id, // from the 'protect' middleware
-        name,
-        description,
-        price,
-        stock,
-        category,
-        sizes: Array.isArray(sizes) ? sizes : [],
-        imageUrls:
-            Array.isArray(imageUrls) && imageUrls.length > 0
-                ? imageUrls
-                : ['https://placehold.co/600x400/000000/FFFFFF?text=Product+Image'],
-    });
-
-    res.status(201).json(product);
+    try {
+        const product = await prisma.product.create({
+            data: {
+                userId: req.user._id, // from the 'protect' middleware
+                name,
+                description,
+                price: parseFloat(price),
+                stock: parseInt(stock, 10),
+                category,
+                sizes: Array.isArray(sizes) ? sizes : [],
+                imageUrls:
+                    Array.isArray(imageUrls) && imageUrls.length > 0
+                        ? imageUrls
+                        : [DEFAULT_IMAGE],
+            },
+        });
+        res.status(201).json(serializeProduct(product));
+    } catch (err) {
+        if (err.code === 'P2002') {
+            res.status(400);
+            throw new Error('A product with this name already exists.');
+        }
+        throw err;
+    }
 });
 
 /**
@@ -51,42 +61,48 @@ const createProduct = asyncHandler(async (req, res) => {
 const updateProduct = asyncHandler(async (req, res) => {
     const { name, description, price, stock, category, imageUrls, sizes } = req.body;
 
-    const product = await Product.findById(req.params.id);
+    const product = await prisma.product.findUnique({ where: { id: req.params.id } });
 
     if (!product) {
         res.status(404);
         throw new Error('Product not found');
     }
 
-    // Update only the fields provided in the request
-    product.name = name || product.name;
-    product.description = description || product.description;
-    product.price = price ?? product.price;
-    product.stock = stock ?? product.stock;
-    product.category = category || product.category;
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description;
+    if (price !== undefined && price !== null) data.price = parseFloat(price);
+    if (stock !== undefined && stock !== null) data.stock = parseInt(stock, 10);
+    if (category !== undefined) data.category = category;
+    if (Array.isArray(sizes)) data.sizes = sizes;
+    if (Array.isArray(imageUrls)) data.imageUrls = imageUrls;
 
-    // Update arrays only if provided
-    if (Array.isArray(sizes)) product.sizes = sizes;
-    if (Array.isArray(imageUrls)) product.imageUrls = imageUrls;
-
-    const updatedProduct = await product.save();
-
-    res.status(200).json(updatedProduct);
+    try {
+        const updated = await prisma.product.update({ where: { id: product.id }, data });
+        res.status(200).json(serializeProduct(updated));
+    } catch (err) {
+        if (err.code === 'P2002') {
+            res.status(400);
+            throw new Error('A product with this name already exists.');
+        }
+        throw err;
+    }
 });
+
 /**
  * @desc    Get a single product by ID (Public for detail view)
  * @route   GET /api/admin/products/:id
  * @access  Public
  */
 const getProductById = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
+    const product = await prisma.product.findUnique({ where: { id: req.params.id } });
 
     if (!product) {
         res.status(404);
         throw new Error('Product not found');
     }
 
-    res.status(200).json(product);
+    res.status(200).json(serializeProduct(product));
 });
 
 /**
@@ -95,27 +111,21 @@ const getProductById = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const getRandomProduct = asyncHandler(async (req, res) => {
-    // 1. Get total number of documents
-    const count = await Product.countDocuments();
+    const count = await prisma.product.count();
 
     if (count === 0) {
-        return res.status(200).json({ product: null, message: "No products found." });
+        return res.status(200).json({ product: null, message: 'No products found.' });
     }
 
-    // 2. Select a random index
     const random = Math.floor(Math.random() * count);
-
-    // 3. Find one document, skipping the random number of documents
-    const product = await Product.findOne().skip(random);
+    const [product] = await prisma.product.findMany({ skip: random, take: 1 });
 
     if (!product) {
-        // Fallback in case of race condition/deleted product
-        return res.status(200).json({ product: null, message: "Could not retrieve a product." });
+        return res.status(200).json({ product: null, message: 'Could not retrieve a product.' });
     }
 
-    res.status(200).json(product);
+    res.status(200).json(serializeProduct(product));
 });
-
 
 /**
  * @desc    Delete a product
@@ -123,14 +133,22 @@ const getRandomProduct = asyncHandler(async (req, res) => {
  * @access  Private (Admin Only)
  */
 const deleteProduct = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
+    const product = await prisma.product.findUnique({ where: { id: req.params.id } });
 
     if (!product) {
         res.status(404);
         throw new Error('Product not found');
     }
 
-    await product.deleteOne();
+    try {
+        await prisma.product.delete({ where: { id: product.id } });
+    } catch (err) {
+        if (err.code === 'P2003') {
+            res.status(400);
+            throw new Error('Cannot delete a product that is referenced by existing orders or carts.');
+        }
+        throw err;
+    }
 
     res.status(200).json({ id: req.params.id, message: 'Product successfully removed.' });
 });
@@ -141,5 +159,5 @@ module.exports = {
     updateProduct,
     deleteProduct,
     getRandomProduct,
-    getProductById
+    getProductById,
 };

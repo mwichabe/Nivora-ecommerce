@@ -1,20 +1,21 @@
 const jwt = require("jsonwebtoken");
 
-// IMPORTANT: Use a complex, hidden secret in a production environment
-const JWT_SECRET = "thisisoneman"; 
+// Secret comes from the environment. The fallback exists only so local dev
+// doesn't hard-crash if .env is missing — set JWT_SECRET in production.
+const JWT_SECRET = process.env.JWT_SECRET || "thisisoneman";
 
 /**
- * Generates a JWT token for a given user ID.
- * @param {string} id - The MongoDB ObjectID of the user.
+ * Generates a JWT for a given user ID.
+ * @param {string} id - The user's UUID.
  * @returns {string} The signed JWT token.
  */
 const generateToken = (id) => {
-    return jwt.sign({ id }, JWT_SECRET, {
-        expiresIn: "30d",
-    });
+  return jwt.sign({ id }, JWT_SECRET, {
+    expiresIn: "30d",
+  });
 };
 
 module.exports = {
-    generateToken,
-    JWT_SECRET,
+  generateToken,
+  JWT_SECRET,
 };

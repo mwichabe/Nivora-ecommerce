@@ -13,9 +13,10 @@ import {
   AlertCircle,
   ChevronDown,
 } from 'lucide-react';
+import { API_BASE } from '../../config';
 
 const PRIMARY = '#ea2e0e';
-const API_BASE_URL = 'https://one-man-server.onrender.com/api/admin/products';
+const API_BASE_URL = `${API_BASE}/admin/products`;
 const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const CATEGORIES = ['Men', 'Women', 'Top Wear', 'Bottom Wear', 'Accessories'];
 

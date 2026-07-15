@@ -10,6 +10,7 @@ import {
   HiMapPin,
 } from "react-icons/hi2";
 import { OrderReview } from "./OrderReview";
+import { API_BASE } from '../../config';
 
 const PRIMARY = '#ea2e0e';
 
@@ -448,7 +449,7 @@ const CheckoutScreen = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://one-man-server.onrender.com/api/orders', {
+      const res = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(orderData),

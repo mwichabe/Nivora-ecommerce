@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { API_BASE } from '../../config';
 
 const PaystackCallback = () => {
   const [searchParams] = useSearchParams();
@@ -12,7 +13,7 @@ const PaystackCallback = () => {
     const verifyPayment = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('https://one-man-server.onrender.com/api/orders/paystack-verify', {
+        const res = await fetch(`${API_BASE}/orders/paystack-verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ reference, trxref }),

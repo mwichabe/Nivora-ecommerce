@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HiOutlineArrowNarrowRight } from "react-icons/hi";
 import logo from '../assets/logo.png';
+import { API_BASE } from '../config';
 
 const PRIMARY = '#ea2e0e';
-const API_URL = 'https://one-man-server.onrender.com/api/users';
+const API_URL = `${API_BASE}/users`;
 
 /* ─── Subtle grid background ─── */
 const GridBackground = () => (

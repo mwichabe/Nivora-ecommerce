@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiCheckCircle, HiCreditCard, HiArrowLeft, HiXMark, HiMapPin, HiTruck } from "react-icons/hi2";
+import { API_BASE } from '../../config';
 
 const PRIMARY = '#ea2e0e';
 
@@ -306,7 +307,7 @@ export const OrderReview = ({ formData, onPrev, placeOrder, cartItems, totalCart
     setPaystackLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://one-man-server.onrender.com/api/orders/${id}/paystack-init`, {
+      const res = await fetch(`${API_BASE}/orders/${id}/paystack-init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ callback_url: window.location.origin + '/app/paystack-callback' }),

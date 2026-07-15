@@ -1,6 +1,7 @@
 // This file initializes and configures Axios globally for your application.
 
 import axios from 'axios';
+import { API_BASE } from '../config';
 
 // --- CRITICAL CONFIGURATION: Enable sending cookies (JWT) ---
 // This setting is essential for sending the 'jwt' cookie with requests
@@ -9,7 +10,7 @@ axios.defaults.withCredentials = true;
 
 // -------------------------------------------------------------
 // Define the Base URL for all API requests
-axios.defaults.baseURL = 'https://one-man-server.onrender.com/api'; 
+axios.defaults.baseURL = `${API_BASE}`; 
 // -------------------------------------------------------------
 
 /**

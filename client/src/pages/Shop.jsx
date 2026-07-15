@@ -5,10 +5,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ProductModal } from '../components/Common/ProductModal';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { API_BASE } from '../config';
 
 const PRIMARY = '#ea2e0e';
-const API_URL = 'https://one-man-server.onrender.com/api/admin/products';
-const CART_API_URL = 'https://one-man-server.onrender.com/api/cart';
+const API_URL = `${API_BASE}/admin/products`;
+const CART_API_URL = `${API_BASE}/cart`;
 const CATEGORIES = ['All', 'Men', 'Women', 'Top Wear', 'Bottom Wear', 'Accessories'];
 
 /* ─── Skeleton Card ─── */

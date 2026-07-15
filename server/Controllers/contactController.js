@@ -7,9 +7,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail', // Use your email provider here (e.g., 'gmail', 'SendGrid', etc.)
     auth: {
-        // It's generally safer to rely on environment variables (process.env)
-        user: process.env.STORE_EMAIL || "mwichabecollins@gmail.com",
-        pass: process.env.STORE_EMAIL_PASSWORD || "vywkybtedndjpajr"
+        user: process.env.STORE_EMAIL,
+        pass: process.env.STORE_EMAIL_PASSWORD,
     }
 });
 
